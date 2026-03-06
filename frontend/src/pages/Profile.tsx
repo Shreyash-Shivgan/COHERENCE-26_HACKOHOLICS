@@ -125,7 +125,7 @@
 //               <Building className="w-5 h-5 text-blue-600" />
 //               <h3 className="text-lg font-semibold text-slate-800">Official Details</h3>
 //             </div>
-            
+
 //             <div className="space-y-4">
 //               <div>
 //                 <label className="block text-sm font-medium text-slate-700 mb-1">Department / Ministry</label>
@@ -166,7 +166,7 @@
 //               <CreditCard className="w-5 h-5 text-blue-600" />
 //               <h3 className="text-lg font-semibold text-slate-800">Identity & Location</h3>
 //             </div>
-            
+
 //             <div className="space-y-4">
 //               <div>
 //                 <label className="block text-sm font-medium text-slate-700 mb-1">Aadhaar Number</label>
@@ -469,8 +469,10 @@
 //   );
 // }
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Camera, Save, Building, MapPin, AlertTriangle, ClipboardList } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
+import { authApi } from '../services/api';
 
 type ProjectRow = {
   projectName: string;
@@ -582,16 +584,18 @@ export default function Profile() {
     website: ''
   });
 
+  const navigate = useNavigate();
+
   const [adminForm, setAdminForm] = useState({
     fullName: displayName,
-    officerId: 'GOV-FIN-2049',
+    officerId: storedProfile.officerId || 'GOV-FIN-2049',
     officialEmail: displayEmail,
-    phoneNumber: '+91 98765 43210',
-    designation: 'Senior Nodal Officer',
+    phoneNumber: storedProfile.phone || '+91 98765 43210',
+    designation: storedProfile.designation || 'Senior Nodal Officer',
     department: displayDepartment === 'Not provided' ? 'Ministry of Finance' : displayDepartment,
     country: 'India',
-    state: 'Maharashtra',
-    district: 'Mumbai Suburban',
+    state: storedProfile.state || 'Maharashtra',
+    district: storedProfile.district || 'Mumbai Suburban',
     city: 'Mumbai',
     wardTaluka: 'R/North Ward',
     governmentBody: 'Municipal Corporation',
@@ -623,12 +627,43 @@ export default function Profile() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    setTimeout(() => {
+
+    try {
+      if (isAdmin) {
+        const response = await authApi.updateProfile({
+          full_name: adminForm.fullName,
+          phone: adminForm.phoneNumber,
+          designation: adminForm.designation,
+          officer_id: adminForm.officerId,
+          state: adminForm.state,
+          district: adminForm.district,
+        });
+
+        localStorage.setItem('govflow_profile_completed', 'true');
+        const updatedProfile = {
+          ...storedProfile,
+          fullName: response.data.full_name,
+          phone: response.data.phone,
+          designation: response.data.designation,
+          officerId: response.data.officer_id,
+          state: response.data.state,
+          district: response.data.district,
+        };
+        localStorage.setItem('govflow_user_profile', JSON.stringify(updatedProfile));
+        localStorage.setItem('govflow_state', response.data.state);
+        localStorage.setItem('govflow_district', response.data.district);
+
+        navigate('/');
+      } else {
+        setTimeout(() => setIsSaving(false), 1000);
+      }
+    } catch (error) {
+      console.error(error);
       setIsSaving(false);
-    }, 1000);
+    }
   };
 
   const totalAllocated = Number(adminForm.totalBudgetAllocated) || 0;
@@ -1092,13 +1127,12 @@ export default function Profile() {
                     <td className="py-3 pr-4 text-slate-600">{project.startDate}</td>
                     <td className="py-3 pr-4 text-slate-600">{project.expectedCompletionDate}</td>
                     <td className="py-3 pr-4">
-                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                        project.status === 'Completed'
+                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${project.status === 'Completed'
                           ? 'bg-emerald-100 text-emerald-700'
                           : project.status === 'In Progress'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}>
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}>
                         {project.status}
                       </span>
                     </td>

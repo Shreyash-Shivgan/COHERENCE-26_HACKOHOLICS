@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 
 class ComplaintCreate(BaseModel):
@@ -12,6 +12,7 @@ class ComplaintCreate(BaseModel):
     rating: int = 0
     description: str
     photo_count: int = 0
+    photos: List[str] = []  # base64 data URIs
     reporter_name: str
     reporter_phone: str = ""
 
@@ -27,6 +28,7 @@ class ComplaintResponse(BaseModel):
     rating: int
     description: str
     photo_count: int
+    photos: List[str] = []
     reporter_name: str
     reporter_phone: str
     timestamp: str

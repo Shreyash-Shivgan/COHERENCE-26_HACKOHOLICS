@@ -7,6 +7,7 @@ import {
   Building2, Layers, ArrowRight, Trash2, ShieldAlert,
   CalendarDays, Phone, User,
 } from 'lucide-react';
+import { complaintsApi } from '../services/api';
 
 // ─── Types (must mirror FlowTracker's CitizenReport exactly) ──────
 interface CitizenReport {
@@ -25,21 +26,22 @@ interface CitizenReport {
   reporterPhone: string;
   timestamp: string;
   reviewStatus: 'Under Review' | 'Acknowledged' | 'Resolved' | 'Rejected';
+  photos?: string[];
 }
 
 const ISSUE_LABELS: Record<string, string> = {
-  not_done:     'Work Not Done',
+  not_done: 'Work Not Done',
   poor_quality: 'Poor Quality',
-  partial:      'Partially Completed',
-  damaged:      'Already Damaged',
-  misuse:       'Funds Misused',
+  partial: 'Partially Completed',
+  damaged: 'Already Damaged',
+  misuse: 'Funds Misused',
 };
 
 const REVIEW_STATUS_CFG = {
-  'Under Review':  { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500', Icon: Clock },
-  'Acknowledged':  { bg: 'bg-blue-50',   text: 'text-blue-700',   border: 'border-blue-200',   dot: 'bg-blue-500',   Icon: AlertCircle },
-  'Resolved':      { bg: 'bg-emerald-50',text: 'text-emerald-700',border: 'border-emerald-200',dot: 'bg-emerald-500',Icon: CheckCircle2 },
-  'Rejected':      { bg: 'bg-red-50',    text: 'text-red-700',    border: 'border-red-200',    dot: 'bg-red-500',    Icon: XCircle },
+  'Under Review': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500', Icon: Clock },
+  'Acknowledged': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500', Icon: AlertCircle },
+  'Resolved': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500', Icon: CheckCircle2 },
+  'Rejected': { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', dot: 'bg-red-500', Icon: XCircle },
 };
 
 // ─── Report Card ──────────────────────────────────────────────────
@@ -110,9 +112,21 @@ function ReportCard({ report, onViewProject, onDelete }: {
       {expanded && (
         <div className="px-5 pb-4 space-y-3 border-t border-slate-50 pt-4">
           <div className="bg-slate-50 rounded-xl p-3.5">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Your Description</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Description</p>
             <p className="text-sm text-slate-700 leading-relaxed">{report.description}</p>
           </div>
+
+          {report.photos && report.photos.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+              {report.photos.map((photo, i) => (
+                <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 shadow-sm transition-colors hover:border-blue-400">
+                  <a href={photo} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                    <img src={photo} alt={`Complaint Evidence ${i + 1}`} className="w-full h-full object-cover transition-transform hover:scale-105" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-slate-50 rounded-xl p-3">
@@ -219,22 +233,53 @@ export default function Reports() {
     } catch { return []; }
   };
 
-  const [reports, setReports] = useState<CitizenReport[]>(readReports);
+  const [reports, setReports] = useState<CitizenReport[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Re-read every time this page mounts (user navigates back from FlowTracker)
   useEffect(() => {
-    setReports(readReports());
+    const fetchReports = async () => {
+      try {
+        const res = await complaintsApi.list();
+        const apiReports: CitizenReport[] = res.data.map((r: any) => ({
+          id: `CMP-${r.id}`,
+          projectId: `PRJ-${r.project_id}`,
+          projectName: r.project_name,
+          department: r.department,
+          scheme: r.scheme,
+          vendor: r.vendor,
+          projectStatus: 'Ongoing', // default placeholder
+          issueType: r.issue_type,
+          rating: r.rating,
+          description: r.description,
+          photoCount: r.photo_count,
+          reporterName: r.reporter_name,
+          reporterPhone: r.reporter_phone,
+          timestamp: r.created_at,
+          reviewStatus: 'Under Review', // Since we don't have review status yet in backend
+          photos: r.photos || []
+        }));
+        // Sort descending by created_at
+        apiReports.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setReports(apiReports);
+      } catch (err) {
+        console.error("Failed to load reports from API, loading from localStorage", err);
+        setReports(readReports());
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchReports();
   }, []);
 
-  const [search,          setSearch]          = useState('');
-  const [filterIssue,     setFilterIssue]     = useState('');
-  const [filterStatus,    setFilterStatus]    = useState('');
+  const [search, setSearch] = useState('');
+  const [filterIssue, setFilterIssue] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   const filtered = useMemo(() =>
     [...reports]
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .filter(r => !filterIssue  || r.issueType     === filterIssue)
-      .filter(r => !filterStatus || r.reviewStatus  === filterStatus)
+      .filter(r => !filterIssue || r.issueType === filterIssue)
+      .filter(r => !filterStatus || r.reviewStatus === filterStatus)
       .filter(r => !search
         || r.projectName.toLowerCase().includes(search.toLowerCase())
         || r.description.toLowerCase().includes(search.toLowerCase())
@@ -255,9 +300,20 @@ export default function Reports() {
   };
 
   // Summary counts
-  const underReview  = reports.filter(r => r.reviewStatus === 'Under Review').length;
+  const underReview = reports.filter(r => r.reviewStatus === 'Under Review').length;
   const acknowledged = reports.filter(r => r.reviewStatus === 'Acknowledged').length;
-  const resolved     = reports.filter(r => r.reviewStatus === 'Resolved').length;
+  const resolved = reports.filter(r => r.reviewStatus === 'Resolved').length;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-slate-200 border-t-orange-500 rounded-full animate-spin" />
+          <p className="text-sm text-slate-500 font-medium animate-pulse">Loading reports...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (reports.length === 0) {
     return (
@@ -309,10 +365,10 @@ export default function Reports() {
       {/* ── Summary stat row ─────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Filed',    value: reports.length,  bg: 'bg-slate-50  border-slate-200  text-slate-700',   dot: 'bg-slate-500'   },
-          { label: 'Under Review',   value: underReview,     bg: 'bg-orange-50 border-orange-200 text-orange-700',  dot: 'bg-orange-500'  },
-          { label: 'Acknowledged',   value: acknowledged,    bg: 'bg-blue-50   border-blue-200   text-blue-700',    dot: 'bg-blue-500'    },
-          { label: 'Resolved',       value: resolved,        bg: 'bg-emerald-50 border-emerald-200 text-emerald-700', dot: 'bg-emerald-500' },
+          { label: 'Total Filed', value: reports.length, bg: 'bg-slate-50  border-slate-200  text-slate-700', dot: 'bg-slate-500' },
+          { label: 'Under Review', value: underReview, bg: 'bg-orange-50 border-orange-200 text-orange-700', dot: 'bg-orange-500' },
+          { label: 'Acknowledged', value: acknowledged, bg: 'bg-blue-50   border-blue-200   text-blue-700', dot: 'bg-blue-500' },
+          { label: 'Resolved', value: resolved, bg: 'bg-emerald-50 border-emerald-200 text-emerald-700', dot: 'bg-emerald-500' },
         ].map(({ label, value, bg, dot }) => (
           <div key={label} className={`rounded-xl border p-4 flex items-center gap-3 ${bg}`}>
             <div className={`w-3 h-3 rounded-full shrink-0 ${dot}`} />

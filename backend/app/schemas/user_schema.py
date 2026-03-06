@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 
 class UserLogin(BaseModel):
@@ -15,12 +15,28 @@ class UserRegister(BaseModel):
     department: str = ""
 
 
+class ProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    designation: Optional[str] = None
+    officer_id: Optional[str] = None
+    department: Optional[str] = None
+    state: Optional[str] = None
+    district: Optional[str] = None
+
+
 class UserResponse(BaseModel):
     id: int
     email: str
     full_name: str
     role: str
     department: str
+    profile_completed: bool = False
+    phone: str = ""
+    designation: str = ""
+    officer_id: str = ""
+    state: str = ""
+    district: str = ""
 
     class Config:
         from_attributes = True

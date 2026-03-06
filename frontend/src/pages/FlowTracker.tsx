@@ -84,30 +84,67 @@ function CitizenReportPanel({
     });
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const canProceedStep1 = issueType !== '';
   const canProceedStep2 = photos.length > 0 && description.trim().length >= 20;
-  const canSubmit = name.trim().length > 0;
+  const canSubmit = name.trim().length > 0 && !isSubmitting;
 
-  const handleSubmit = () => {
-    const report: CitizenReport = {
-      id: `RPT-${Date.now()}`,
-      projectId: project.id,
-      projectName: project.name,
-      department: project.department,
-      scheme: project.scheme,
-      vendor: project.vendor,
-      projectStatus: project.status,
-      issueType,
-      rating,
-      description,
-      photoCount: photos.length,
-      reporterName: name,
-      reporterPhone: phone,
-      timestamp: new Date().toISOString(),
-      reviewStatus: 'Under Review',
-    };
-    onSubmit(report);
-    setSubmitted(true);
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const base64Photos = await Promise.all(
+        photos.map((p) => {
+          return new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(p.file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (error) => reject(error);
+          });
+        })
+      );
+
+      const projectIdNum = parseInt(project.id.replace(/\D/g, '')) || 0;
+      await complaintsApi.submit({
+        project_id: projectIdNum,
+        project_name: project.name,
+        department: project.department,
+        scheme: project.scheme,
+        vendor: project.vendor,
+        issue_type: issueType,
+        rating,
+        description,
+        photo_count: photos.length,
+        reporter_name: name,
+        reporter_phone: phone,
+        photos: base64Photos,
+      });
+
+      const report: CitizenReport = {
+        id: `RPT-${Date.now()}`,
+        projectId: project.id,
+        projectName: project.name,
+        department: project.department,
+        scheme: project.scheme,
+        vendor: project.vendor,
+        projectStatus: project.status,
+        issueType,
+        rating,
+        description,
+        photoCount: photos.length,
+        reporterName: name,
+        reporterPhone: phone,
+        timestamp: new Date().toISOString(),
+        reviewStatus: 'Under Review',
+      };
+      onSubmit(report);
+      setSubmitted(true);
+    } catch (err) {
+      console.error('Submit error:', err);
+      // Optionally show a user-facing error message here
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -490,7 +527,13 @@ function CitizenReportPanel({
               disabled={!canSubmit}
               className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
             >
-              <Send className="w-4 h-4" /> Submit Report
+              {isSubmitting ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Send className="w-4 h-4" /> Submit Report
+                </>
+              )}
             </button>
           </div>
         </div>

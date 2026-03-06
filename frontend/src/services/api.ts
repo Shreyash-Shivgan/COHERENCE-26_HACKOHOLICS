@@ -35,6 +35,12 @@ export interface UserInfo {
   full_name: string;
   role: string;
   department: string;
+  profile_completed: boolean;
+  phone: string;
+  designation: string;
+  officer_id: string;
+  state: string;
+  district: string;
 }
 
 export interface AuthResponse {
@@ -51,6 +57,9 @@ export const authApi = {
     api.post<AuthResponse>('/auth/register', data),
 
   me: () => api.get<UserInfo>('/auth/me'),
+
+  updateProfile: (data: Partial<UserInfo>) =>
+    api.put<UserInfo>('/auth/profile', data),
 };
 
 // ─── Dashboard ─────────────────────────────────────────────────────
@@ -170,6 +179,7 @@ export interface ComplaintPayload {
   photo_count: number;
   reporter_name: string;
   reporter_phone: string;
+  photos?: string[];
 }
 
 export const complaintsApi = {

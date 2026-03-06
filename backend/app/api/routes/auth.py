@@ -5,7 +5,7 @@ from passlib.context import CryptContext
 from app.core.database import get_db
 from app.core.firebase import create_access_token
 from app.models.user_model import User
-from app.schemas.user_schema import UserLogin, UserRegister, TokenResponse, UserResponse
+from app.schemas.user_schema import UserLogin, UserRegister, TokenResponse, UserResponse, ProfileUpdate
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -77,4 +77,23 @@ def get_me(db: Session = Depends(get_db), current_user: dict = Depends(
     user = db.query(User).filter(User.id == int(current_user["sub"])).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    return UserResponse.model_validate(user)
+
+@router.put("/profile", response_model=UserResponse)
+def update_profile(data: ProfileUpdate, db: Session = Depends(get_db), current_user: dict = Depends(
+    __import__('app.core.security', fromlist=['get_current_user']).get_current_user
+)):
+    user = db.query(User).filter(User.id == int(current_user["sub"])).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(user, key, value)
+    
+    # Mark profile as completed once updated
+    user.profile_completed = True
+    
+    db.commit()
+    db.refresh(user)
     return UserResponse.model_validate(user)

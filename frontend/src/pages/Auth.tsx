@@ -39,13 +39,21 @@ export default function Auth() {
       localStorage.setItem('govflow_auth', 'true');
       localStorage.setItem('govflow_token', access_token);
       localStorage.setItem('govflow_role', user.role);
+      localStorage.setItem('govflow_profile_completed', String(user.profile_completed));
+
       localStorage.setItem('govflow_user_profile', JSON.stringify({
         fullName: user.full_name,
         email: user.email,
         department: user.department,
         role: user.role,
+        phone: user.phone,
+        designation: user.designation,
+        officerId: user.officer_id,
+        state: user.state,
+        district: user.district,
       }));
 
+      // Redirect logic is handled by ProtectedRoute in App.tsx, but we can safely navigate to /
       navigate('/');
     } catch (err: any) {
       const detail = err?.response?.data?.detail || 'Something went wrong. Please try again.';
@@ -110,8 +118,8 @@ export default function Auth() {
                   type="button"
                   onClick={() => setRole('citizen')}
                   className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${role === 'citizen'
-                      ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                 >
                   <Users className="w-4 h-4" />
@@ -121,8 +129,8 @@ export default function Auth() {
                   type="button"
                   onClick={() => setRole('admin')}
                   className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${role === 'admin'
-                      ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                 >
                   <ShieldAlert className="w-4 h-4" />

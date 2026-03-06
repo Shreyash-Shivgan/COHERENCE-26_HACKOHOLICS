@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy import Column, Integer, String, Text
 from app.core.database import Base
 
 
@@ -15,6 +15,7 @@ class Complaint(Base):
     rating = Column(Integer, default=0)
     description = Column(String)
     photo_count = Column(Integer, default=0)
+    photos = Column(Text, default="[]")  # JSON array of base64 data URIs
     reporter_name = Column(String)
     reporter_phone = Column(String, default="")
     timestamp = Column(String)

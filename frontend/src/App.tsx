@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import FlowTracker from './pages/FlowTracker';
@@ -11,9 +11,17 @@ import ReallocationInsights from './pages/ReallocationInsights';
 // A simple protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = localStorage.getItem('govflow_auth') === 'true';
+  const role = localStorage.getItem('govflow_role');
+  const profileCompleted = localStorage.getItem('govflow_profile_completed') === 'true';
+  const location = useLocation();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Force admins to complete profile if they haven't already, except when already on /profile
+  if (role === 'admin' && !profileCompleted && location.pathname !== '/profile') {
+    return <Navigate to="/profile" replace />;
   }
 
   return <>{children}</>;
