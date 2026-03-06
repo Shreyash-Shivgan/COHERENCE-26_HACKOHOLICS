@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-router = APIRouter(prefix="/predict", tags=["Prediction"])
+router = APIRouter(tags=["Prediction"])
 
 _predict_fn = None
 _ml_available = False

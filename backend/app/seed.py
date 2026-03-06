@@ -128,7 +128,7 @@ def seed_database(db: Session):
         return
 
     try:
-        csv_path = os.path.join(os.path.dirname(__file__), "ml", "data", "final_data.csv.csv")
+        csv_path = os.path.join(os.path.dirname(__file__), "ml", "data", "budget_results_with_risk_scores.csv")
         if os.path.exists(csv_path):
             _seed_from_csv(db, csv_path)
         else:
@@ -151,13 +151,20 @@ def _convert_date_format(date_str: str) -> str:
 
 def _seed_from_csv(db: Session, csv_path: str):
     print(f"Reading seed data from {csv_path}...")
+    
+    try:
+        from app.ml.prediction_model import predict, ML_FEATURES
+    except ImportError:
+        print("ML dependencies not found, cannot seed real anomalies. Fallback to _do_seed.")
+        _do_seed(db)
+        return
+
     project_counter = 0
     anomaly_counter = 0
     
     with open(csv_path, newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            # We skip some rows to keep the DB size manageable, or load all
             # Load first 300 to be safe on DB size and speed
             if project_counter >= 300:
                 break
@@ -182,19 +189,24 @@ def _seed_from_csv(db: Session, csv_path: str):
             
             start_date = _convert_date_format(row.get("project_start_date", ""))
             
-            # Decide end date based on status
             if p_status == "Completed":
                 end_date = _convert_date_format(row.get("actual_completion", ""))
             else:
                 end_date = _convert_date_format(row.get("expected_completion", ""))
             
-            # Predict anomaly: high complaints or delayed
-            complaints = int(row.get("citizen_complaints", "0"))
-            veri = row.get("completion_verified", "Yes")
-            rating = float(row.get("citizen_rating", "5.0"))
+            # --- LIVE ML INFERENCE INTEGRATION ---
+            # Compile the exactly required 21 features for the model
+            features = []
+            for feat in ML_FEATURES:
+                val = row.get(feat, "0")
+                if not val: val = "0"
+                features.append(float(val))
+            
+            res = predict(features)
+            risk_level = res.get("risk_level", "LOW")
             
             anomaly_flag = False
-            if (p_status == "Delayed" and complaints > 150) or (veri == "No" and rating < 2.5):
+            if risk_level == "HIGH":
                 anomaly_flag = True
 
             proj = Project(
@@ -226,7 +238,8 @@ def _seed_from_csv(db: Session, csv_path: str):
                 a_status = _pick(ANOMALY_STATUSES, _seed(k + "astatus"))
                 
                 util_pct = round((proj.utilized_amount / max(proj.project_budget, 1)) * 100)
-                
+                complaints = int(float(row.get("citizen_complaints", "0") or "0"))
+
                 desc = tmpl["desc_template"].format(
                     vendor=proj.vendor,
                     name=proj.project_name,
