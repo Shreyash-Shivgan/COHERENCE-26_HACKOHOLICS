@@ -7,3 +7,5 @@ __pycache__/
 firebase_key.json backend/
 firebase_key.json
 serviceAccountKey.json .env
+backend/firebase_key.json
+*.json
