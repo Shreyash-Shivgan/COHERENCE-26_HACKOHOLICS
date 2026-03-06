@@ -1,4 +1,3 @@
-
 // // ─── India Geography ─────────────────────────────────────────────
 // export const INDIA_STATES_DISTRICTS: Record<string, string[]> = {
 //   "Andhra Pradesh": ["Visakhapatnam","Vijayawada","Guntur","Nellore","Kurnool","Tirupati","Rajahmundry","Kadapa","Anantapur","Eluru"],
@@ -192,6 +191,138 @@
 //     allocationVsUtilization, anomaliesTrend,
 //     label: district ? `${district}, ${state}` : state,
 //   };
+// }
+
+// // ─── Fund Flow Node ──────────────────────────────────────────────
+// export interface FlowNode {
+//   level: number;
+//   levelLabel: string;
+//   entity: string;
+//   role: string;
+//   allocated: number;
+//   disbursed: number;
+//   utilized: number;
+//   date: string;
+//   status: 'Disbursed' | 'Partially Disbursed' | 'Flagged' | 'Pending';
+//   alert?: string;
+// }
+
+// // Generates a 6-level fund flow chain for a specific project
+// export function getFlowForProject(project: Project, state: string, district: string): FlowNode[] {
+//   const k = project.id;
+
+//   // Each level disburses slightly less (leakage / pending at each stage)
+//   const total = project.allocated;
+//   const l1 = total * 1.4;                          // Union Budget envelope (bigger)
+//   const l2 = total * 1.15;
+//   const l3 = total * 1.05;
+//   const l4 = total;
+//   const l5 = Math.round(total * (0.85 + (seed(k + 'l5') % 10) / 100));
+//   const l6 = project.utilized;
+
+//   const dept = project.department;
+//   const stateGovt = `Government of ${state}`;
+
+//   // Municipality / local body name based on district
+//   const municipalBodies: Record<string, string> = {
+//     Mumbai: 'Brihanmumbai Municipal Corporation (BMC)',
+//     Pune: 'Pune Municipal Corporation',
+//     Delhi: 'Delhi Municipal Corporation',
+//     Chennai: 'Greater Chennai Corporation',
+//     Bengaluru: 'Bruhat Bengaluru Mahanagara Palike',
+//     Hyderabad: 'Greater Hyderabad Municipal Corporation',
+//     Kolkata: 'Kolkata Municipal Corporation',
+//   };
+//   const municipal = municipalBodies[district] ?? `${district} Municipal Corporation`;
+
+//   const flagLevel = project.anomalyFlag ? 5 : -1;   // which level is flagged
+
+//   const mkStatus = (lvl: number): FlowNode['status'] =>
+//     lvl === flagLevel ? 'Flagged'
+//     : project.status === 'Cancelled' && lvl >= 5 ? 'Pending'
+//     : project.status === 'Delayed'   && lvl >= 6 ? 'Pending'
+//     : 'Disbursed';
+
+//   const dates = [
+//     '01 Apr 2024', '20 Apr 2024', '15 May 2024',
+//     '10 Jun 2024', '05 Jul 2024', '20 Jul 2024',
+//   ];
+
+//   return [
+//     {
+//       level: 1,
+//       levelLabel: 'Union Budget',
+//       entity: 'Ministry of Finance, Government of India',
+//       role: dept,
+//       allocated: Math.round(l1),
+//       disbursed: Math.round(l1),
+//       utilized: Math.round(l1 * 0.7),
+//       date: dates[0],
+//       status: 'Disbursed',
+//     },
+//     {
+//       level: 2,
+//       levelLabel: 'Central Ministry',
+//       entity: dept,
+//       role: `Nodal ministry for ${project.scheme}`,
+//       allocated: Math.round(l2),
+//       disbursed: Math.round(l2),
+//       utilized: Math.round(l2 * 0.72),
+//       date: dates[1],
+//       status: mkStatus(2),
+//     },
+//     {
+//       level: 3,
+//       levelLabel: 'State Government',
+//       entity: stateGovt,
+//       role: `State Nodal Agency — ${project.scheme}`,
+//       allocated: Math.round(l3),
+//       disbursed: Math.round(l3),
+//       utilized: Math.round(l3 * 0.75),
+//       date: dates[2],
+//       status: mkStatus(3),
+//     },
+//     {
+//       level: 4,
+//       levelLabel: 'District / Municipal Body',
+//       entity: municipal,
+//       role: `District Implementation Unit`,
+//       allocated: Math.round(l4),
+//       disbursed: Math.round(l4 * (project.status === 'Cancelled' ? 0.4 : 0.95)),
+//       utilized: Math.round(l4 * 0.6),
+//       date: dates[3],
+//       status: mkStatus(4),
+//     },
+//     {
+//       level: 5,
+//       levelLabel: 'Ward / Project Office',
+//       entity: `${district} Ward Office – ${project.scheme}`,
+//       role: 'On-ground project management',
+//       allocated: l5,
+//       disbursed: Math.round(l5 * (project.status === 'Cancelled' ? 0.2 : project.status === 'Delayed' ? 0.6 : 0.9)),
+//       utilized: Math.round(l5 * (project.status === 'Delayed' ? 0.35 : 0.65)),
+//       date: dates[4],
+//       status: mkStatus(5),
+//       alert: flagLevel === 5 ? `Utilization mismatch detected at ward level for ${project.name}.` : undefined,
+//     },
+//     {
+//       level: 6,
+//       levelLabel: 'Contractor / Implementer',
+//       entity: project.vendor,
+//       role: `Executing agency — ${project.name}`,
+//       allocated: project.allocated,
+//       disbursed: project.utilized,
+//       utilized: project.utilized,
+//       date: dates[5],
+//       status: project.anomalyFlag ? 'Flagged'
+//             : project.status === 'Completed' ? 'Disbursed'
+//             : project.status === 'Cancelled' ? 'Pending'
+//             : 'Partially Disbursed',
+//       alert: project.anomalyFlag
+//         ? `Completion claim submitted by ${project.vendor} but field verification is pending. Funds at risk: ${new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(project.allocated - project.utilized)}.`
+//         : undefined,
+//     },
+//   ];
 // }
 // ─── India Geography ─────────────────────────────────────────────
 export const INDIA_STATES_DISTRICTS: Record<string, string[]> = {
@@ -518,4 +649,94 @@ export function getFlowForProject(project: Project, state: string, district: str
         : undefined,
     },
   ];
+}
+
+// ─── Anomaly Types ───────────────────────────────────────────────
+export type AnomalySeverity = 'High' | 'Medium' | 'Low';
+export type AnomalyStatus = 'Investigating' | 'Flagged for Audit' | 'Warning Issued' | 'Resolved';
+
+export interface Anomaly {
+  id: string;
+  projectId: string;
+  projectName: string;
+  department: string;
+  scheme: string;
+  vendor: string;
+  projectStatus: ProjectStatus;
+  type: string;
+  severity: AnomalySeverity;
+  status: AnomalyStatus;
+  description: string;
+  amountAtRisk: number;
+  date: string;
+  district: string;
+  state: string;
+}
+
+const ANOMALY_TEMPLATES = [
+  {
+    type: 'Verification Mismatch',
+    severity: 'High' as AnomalySeverity,
+    desc: (p: Project, district: string) =>
+      `${p.vendor} has marked "${p.name}" as 100% complete. ${(seed(p.id + 'tickets') % 40) + 10}+ citizen tickets raised in the last 48 hours reporting incomplete work and debris at site in ${district}.`,
+  },
+  {
+    type: 'Abnormal Allocation Spike',
+    severity: 'Medium' as AnomalySeverity,
+    desc: (p: Project) =>
+      `Historical 5-year average budget for this scheme was ₹${((seed(p.id + 'hist') % 20) + 5)}L/year. Current fiscal year allocation spiked to ₹${Math.round(p.allocated / 100000)}L without corresponding project proposals.`,
+  },
+  {
+    type: 'Fund Idling',
+    severity: 'Low' as AnomalySeverity,
+    desc: (p: Project) =>
+      `Funds disbursed ${(seed(p.id + 'months') % 5) + 3} months ago for "${p.name}" have only ${Math.round((p.utilized / p.allocated) * 100)}% utilization rate. Deadline approaching with no work commencement.`,
+  },
+  {
+    type: 'Duplicate Disbursement',
+    severity: 'High' as AnomalySeverity,
+    desc: (p: Project) =>
+      `Two disbursement records detected for the same work order under "${p.name}". Total duplicate amount flagged: ₹${Math.round(p.allocated * 0.3 / 100000)}L. Vendor: ${p.vendor}.`,
+  },
+  {
+    type: 'Contractor Non-Performance',
+    severity: 'Medium' as AnomalySeverity,
+    desc: (p: Project) =>
+      `${p.vendor} has received ${Math.round(p.utilized / 100000)}L in milestone payments for "${p.name}" but field verification shows only ${Math.round((p.utilized / p.allocated) * 60)}% physical completion.`,
+  },
+];
+
+const ANOMALY_STATUSES: AnomalyStatus[] = ['Investigating', 'Flagged for Audit', 'Warning Issued', 'Resolved'];
+
+export const ALL_ANOMALY_STATUSES: AnomalyStatus[] = ['Investigating', 'Flagged for Audit', 'Warning Issued', 'Resolved'];
+export const ALL_ANOMALY_SEVERITIES: AnomalySeverity[] = ['High', 'Medium', 'Low'];
+
+export function getAnomaliesForLocation(state: string, district: string): Anomaly[] {
+  const projects = getProjectsForLocation(state, district);
+  const dates = ['2024-10-24', '2024-10-22', '2024-10-20', '2024-10-18', '2024-10-15', '2024-10-10'];
+
+  // Every flagged project generates an anomaly; also add some for delayed ones
+  const anomalyProjects = projects.filter(p => p.anomalyFlag || p.status === 'Delayed');
+
+  return anomalyProjects.map((p, i) => {
+    const tmpl = ANOMALY_TEMPLATES[seed(p.id + 'tmpl') % ANOMALY_TEMPLATES.length];
+    const statusIdx = seed(p.id + 'astatus') % 3; // exclude 'Resolved' for active ones
+    return {
+      id: `ANM-${new Date().getFullYear()}-${String(seed(p.id + 'anum') % 900 + 100)}`,
+      projectId: p.id,
+      projectName: p.name,
+      department: p.department,
+      scheme: p.scheme,
+      vendor: p.vendor,
+      projectStatus: p.status,
+      type: tmpl.type,
+      severity: p.anomalyFlag ? 'High' : tmpl.severity,
+      status: ANOMALY_STATUSES[statusIdx],
+      description: tmpl.desc(p, district),
+      amountAtRisk: Math.round(p.allocated * (0.2 + (seed(p.id + 'risk') % 50) / 100)),
+      date: dates[i % dates.length],
+      district,
+      state,
+    };
+  });
 }

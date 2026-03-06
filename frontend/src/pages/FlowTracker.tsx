@@ -1,660 +1,5 @@
-// // import { fundFlowHierarchy } from '../data/mockData';
-// // import { formatCurrency } from '../lib/utils';
-// // import { ArrowDown, AlertCircle, CheckCircle2 } from 'lucide-react';
-
-// // export default function FlowTracker() {
-// //   return (
-// //     <div className="max-w-4xl mx-auto space-y-8">
-// //       <div>
-// //         <h2 className="text-2xl font-bold text-slate-800">Budget Flow Tracker</h2>
-// //         <p className="text-slate-500">Tracing funds from Union Budget to Implementation Level</p>
-// //       </div>
-
-// //       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8">
-// //         <div className="relative">
-// //           {/* Vertical Line */}
-// //           <div className="absolute left-8 top-8 bottom-8 w-0.5 bg-slate-200"></div>
-
-// //           <div className="space-y-12">
-// //             {fundFlowHierarchy.map((node, index) => (
-// //               <div key={node.level} className="relative flex items-start gap-6">
-// //                 {/* Node Icon */}
-// //                 <div className={`relative z-10 w-16 h-16 rounded-full flex items-center justify-center border-4 border-white shadow-sm
-// //                   ${node.status === 'Flagged' ? 'bg-red-100 text-red-600' : 'bg-blue-50 text-blue-600'}
-// //                 `}>
-// //                   <span className="font-bold text-lg">{node.level}</span>
-// //                 </div>
-
-// //                 {/* Content Card */}
-// //                 <div className={`flex-1 rounded-xl border p-5 transition-all hover:shadow-md
-// //                   ${node.status === 'Flagged' ? 'border-red-200 bg-red-50/30' : 'border-slate-200 bg-white'}
-// //                 `}>
-// //                   <div className="flex justify-between items-start mb-2">
-// //                     <div>
-// //                       <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider">{node.title}</h3>
-// //                       <p className="text-lg font-bold text-slate-800">{node.entity}</p>
-// //                     </div>
-// //                     <div className="text-right">
-// //                       <p className="text-xl font-bold text-slate-800">{formatCurrency(node.allocated)}</p>
-// //                       <p className="text-xs text-slate-400 mt-1">Allocated on {node.date}</p>
-// //                     </div>
-// //                   </div>
-
-// //                   <div className="mt-4 flex items-center gap-2">
-// //                     {node.status === 'Flagged' ? (
-// //                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-// //                         <AlertCircle className="w-3.5 h-3.5" />
-// //                         {node.status}
-// //                       </span>
-// //                     ) : (
-// //                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-// //                         <CheckCircle2 className="w-3.5 h-3.5" />
-// //                         {node.status}
-// //                       </span>
-// //                     )}
-// //                   </div>
-
-// //                   {node.alert && (
-// //                     <div className="mt-4 p-3 bg-red-100/50 border border-red-200 rounded-lg flex items-start gap-3">
-// //                       <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-// //                       <div>
-// //                         <p className="text-sm font-medium text-red-800">Anomaly Detected</p>
-// //                         <p className="text-sm text-red-600 mt-1">{node.alert}</p>
-// //                       </div>
-// //                     </div>
-// //                   )}
-// //                 </div>
-// //               </div>
-// //             ))}
-// //           </div>
-// //         </div>
-// //       </div>
-// //     </div>
-// //   );
-// // }
-// import { useState, useMemo } from 'react';
-// import {
-//   Search, AlertCircle, CheckCircle2, Clock, XCircle,
-//   AlertTriangle, ArrowDown, MapPin, RotateCcw,
-//   ChevronDown, Filter, X, Building2, IndianRupee,
-//   TrendingUp, Layers, ChevronRight,
-// } from 'lucide-react';
-// import {
-//   getProjectsForLocation,
-//   getFlowForProject,
-//   DEPARTMENTS,
-//   SCHEMES_BY_DEPT,
-//   ALL_STATUSES,
-//   type Project,
-//   type ProjectStatus,
-//   type FlowNode,
-// } from '../data/indiaData';
-// import { formatCurrency } from '../lib/utils';
-
-// // ─── Status configs ───────────────────────────────────────────────
-// const FLOW_STATUS_CFG: Record<string, { bg: string; text: string; border: string; Icon: any }> = {
-//   'Disbursed':            { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', Icon: CheckCircle2 },
-//   'Partially Disbursed':  { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    Icon: Clock },
-//   'Flagged':              { bg: 'bg-red-50',      text: 'text-red-700',     border: 'border-red-200',     Icon: AlertCircle },
-//   'Pending':              { bg: 'bg-slate-100',   text: 'text-slate-600',   border: 'border-slate-200',   Icon: Clock },
-// };
-
-// const PROJ_STATUS_CFG: Record<ProjectStatus, { bg: string; text: string; Icon: any }> = {
-//   Ongoing:   { bg: 'bg-blue-50',     text: 'text-blue-700',    Icon: Clock },
-//   Completed: { bg: 'bg-emerald-50',  text: 'text-emerald-700', Icon: CheckCircle2 },
-//   Delayed:   { bg: 'bg-orange-50',   text: 'text-orange-700',  Icon: AlertCircle },
-//   Cancelled: { bg: 'bg-red-50',      text: 'text-red-700',     Icon: XCircle },
-// };
-
-// // ─── Project List Card ────────────────────────────────────────────
-// function ProjectCard({
-//   project, selected, onClick,
-// }: {
-//   project: Project; selected: boolean; onClick: () => void;
-// }) {
-//   const sc = PROJ_STATUS_CFG[project.status];
-//   const utilPct = Math.round((project.utilized / project.allocated) * 100);
-
-//   return (
-//     <button
-//       onClick={onClick}
-//       className={`w-full text-left p-4 rounded-xl border transition-all group
-//         ${selected
-//           ? 'border-blue-500 bg-blue-50 shadow-md shadow-blue-100'
-//           : 'border-slate-200 bg-white hover:border-blue-300 hover:shadow-sm'
-//         }`}
-//     >
-//       <div className="flex items-start justify-between gap-2 mb-2">
-//         <div className="flex-1 min-w-0">
-//           <div className="flex items-center gap-1.5 flex-wrap mb-1">
-//             {project.anomalyFlag && (
-//               <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />
-//             )}
-//             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${sc.bg} ${sc.text}`}>
-//               <sc.Icon className="w-2.5 h-2.5 inline mr-0.5" />
-//               {project.status}
-//             </span>
-//           </div>
-//           <p className="text-sm font-semibold text-slate-800 leading-snug line-clamp-2">{project.name}</p>
-//           <p className="text-xs text-slate-400 mt-0.5">{project.id}</p>
-//         </div>
-//         <ChevronRight className={`w-4 h-4 shrink-0 mt-1 transition-colors
-//           ${selected ? 'text-blue-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
-//       </div>
-
-//       <p className="text-xs text-slate-500 truncate mb-2">{project.vendor}</p>
-
-//       {/* Mini utilization bar */}
-//       <div className="space-y-1">
-//         <div className="flex justify-between text-[10px] text-slate-400">
-//           <span>{formatCurrency(project.allocated)}</span>
-//           <span>{utilPct}% used</span>
-//         </div>
-//         <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-//           <div
-//             className={`h-1.5 rounded-full transition-all
-//               ${utilPct >= 80 ? 'bg-emerald-500' : utilPct >= 50 ? 'bg-blue-500' : 'bg-orange-400'}`}
-//             style={{ width: `${Math.min(utilPct, 100)}%` }}
-//           />
-//         </div>
-//       </div>
-//     </button>
-//   );
-// }
-
-// // ─── Flow Node Card ───────────────────────────────────────────────
-// function FlowNodeCard({ node, isLast }: { node: FlowNode; isLast: boolean }) {
-//   const cfg = FLOW_STATUS_CFG[node.status] ?? FLOW_STATUS_CFG['Disbursed'];
-//   const disbPct = Math.round((node.disbursed / node.allocated) * 100);
-//   const utilPct = Math.round((node.utilized  / node.allocated) * 100);
-
-//   const nodeColor =
-//     node.status === 'Flagged'  ? 'bg-red-500 text-white shadow-red-200' :
-//     node.status === 'Pending'  ? 'bg-slate-300 text-slate-600 shadow-slate-100' :
-//     node.status === 'Partially Disbursed' ? 'bg-blue-500 text-white shadow-blue-200' :
-//     'bg-emerald-500 text-white shadow-emerald-200';
-
-//   return (
-//     <div className="relative flex gap-5">
-//       {/* Spine column */}
-//       <div className="flex flex-col items-center shrink-0 w-12">
-//         <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shadow-lg z-10 ${nodeColor}`}>
-//           {node.level}
-//         </div>
-//         {!isLast && (
-//           <div className="flex flex-col items-center flex-1 py-1">
-//             <div className="w-px flex-1 bg-slate-200 min-h-4" />
-//             <ArrowDown className="w-4 h-4 text-slate-300 shrink-0" />
-//             <div className="w-px flex-1 bg-slate-200 min-h-4" />
-//           </div>
-//         )}
-//       </div>
-
-//       {/* Content card */}
-//       <div className={`flex-1 mb-5 rounded-xl border p-5 transition-all hover:shadow-md
-//         ${node.status === 'Flagged'
-//           ? 'border-red-200 bg-red-50/40'
-//           : node.status === 'Pending'
-//           ? 'border-slate-200 bg-slate-50/60'
-//           : 'border-slate-200 bg-white'
-//         }`}
-//       >
-//         {/* Header */}
-//         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-//           <div className="flex-1 min-w-0">
-//             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
-//               Level {node.level} · {node.levelLabel}
-//             </p>
-//             <p className="text-base font-bold text-slate-800 leading-snug">{node.entity}</p>
-//             <p className="text-xs text-slate-500 mt-0.5 italic">{node.role}</p>
-//           </div>
-//           <div className="sm:text-right shrink-0">
-//             <p className="text-lg font-bold text-slate-800">{formatCurrency(node.allocated)}</p>
-//             <p className="text-[10px] text-slate-400 mt-0.5">Allocated · {node.date}</p>
-//           </div>
-//         </div>
-
-//         {/* Progress bars */}
-//         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-//           <div>
-//             <div className="flex justify-between text-xs text-slate-500 mb-1">
-//               <span className="font-medium">Disbursed</span>
-//               <span>{formatCurrency(node.disbursed)} <span className="text-slate-400">({disbPct}%)</span></span>
-//             </div>
-//             <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-//               <div
-//                 className="h-2 rounded-full bg-blue-400 transition-all duration-500"
-//                 style={{ width: `${Math.min(disbPct, 100)}%` }}
-//               />
-//             </div>
-//           </div>
-//           <div>
-//             <div className="flex justify-between text-xs text-slate-500 mb-1">
-//               <span className="font-medium">Utilized</span>
-//               <span>{formatCurrency(node.utilized)} <span className="text-slate-400">({utilPct}%)</span></span>
-//             </div>
-//             <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-//               <div
-//                 className={`h-2 rounded-full transition-all duration-500
-//                   ${utilPct >= 80 ? 'bg-emerald-500' : utilPct >= 50 ? 'bg-blue-500' : 'bg-orange-400'}`}
-//                 style={{ width: `${Math.min(utilPct, 100)}%` }}
-//               />
-//             </div>
-//           </div>
-//         </div>
-
-//         {/* Status badge */}
-//         <div className="mt-4 flex items-center gap-2 flex-wrap">
-//           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-//             <cfg.Icon className="w-3 h-3" />
-//             {node.status}
-//           </span>
-//           {node.status === 'Flagged' && (
-//             <span className="text-xs text-red-500 font-semibold">⚠ Anomaly at this level</span>
-//           )}
-//           {node.status === 'Pending' && (
-//             <span className="text-xs text-slate-500">Funds not yet released</span>
-//           )}
-//         </div>
-
-//         {/* Alert */}
-//         {node.alert && (
-//           <div className="mt-4 p-3.5 bg-red-100/70 border border-red-200 rounded-xl flex items-start gap-3">
-//             <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-//             <div>
-//               <p className="text-xs font-bold text-red-800 mb-0.5">Anomaly Detected</p>
-//               <p className="text-xs text-red-700 leading-relaxed">{node.alert}</p>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-// // ─── Main Page ───────────────────────────────────────────────────
-// export default function FlowTracker() {
-//   const profileState    = localStorage.getItem('govflow_state')    || 'Maharashtra';
-//   const profileDistrict = localStorage.getItem('govflow_district') || 'Mumbai';
-
-//   // All projects for this location
-//   const allProjects = useMemo(
-//     () => getProjectsForLocation(profileState, profileDistrict),
-//     [profileState, profileDistrict]
-//   );
-
-//   // ── Filter state ──────────────────────────────────────────────
-//   const [search,       setSearch]       = useState('');
-//   const [filterDept,   setFilterDept]   = useState('');
-//   const [filterScheme, setFilterScheme] = useState('');
-//   const [filterStatus, setFilterStatus] = useState('');
-
-//   const schemeOptions = useMemo(() =>
-//     filterDept
-//       ? (SCHEMES_BY_DEPT[filterDept] ?? [])
-//       : Object.values(SCHEMES_BY_DEPT).flat(),
-//     [filterDept]);
-
-//   const filteredProjects = useMemo(() =>
-//     allProjects
-//       .filter(p => !filterDept   || p.department === filterDept)
-//       .filter(p => !filterScheme || p.scheme     === filterScheme)
-//       .filter(p => !filterStatus || p.status     === filterStatus)
-//       .filter(p => !search
-//         || p.name.toLowerCase().includes(search.toLowerCase())
-//         || p.vendor.toLowerCase().includes(search.toLowerCase())
-//         || p.id.toLowerCase().includes(search.toLowerCase())),
-//     [allProjects, filterDept, filterScheme, filterStatus, search]);
-
-//   const anyFilter = !!(filterDept || filterScheme || filterStatus || search);
-
-//   const clearFilters = () => {
-//     setSearch(''); setFilterDept(''); setFilterScheme(''); setFilterStatus('');
-//   };
-
-//   // ── Selected project + flow ───────────────────────────────────
-//   const [selectedId, setSelectedId] = useState<string | null>(null);
-//   const selectedProject = allProjects.find(p => p.id === selectedId) ?? null;
-
-//   const flowNodes = useMemo(() =>
-//     selectedProject
-//       ? getFlowForProject(selectedProject, profileState, profileDistrict)
-//       : [],
-//     [selectedProject, profileState, profileDistrict]);
-
-//   // Summary stats for selected project
-//   const anomalyCount = flowNodes.filter(n => n.status === 'Flagged').length;
-//   const totalDisbursed = flowNodes[flowNodes.length - 1]?.disbursed ?? 0;
-//   const utilizationPct = selectedProject
-//     ? Math.round((selectedProject.utilized / selectedProject.allocated) * 100)
-//     : 0;
-
-//   return (
-//     <div className="space-y-5">
-
-//       {/* ── Page Header ──────────────────────────────────────────── */}
-//       <div className="flex items-start justify-between gap-4 flex-wrap">
-//         <div>
-//           <h2 className="text-2xl font-bold text-slate-800">Budget Flow Tracker</h2>
-//           <div className="flex items-center gap-2 mt-1 flex-wrap">
-//             <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-//             <span className="text-sm text-slate-500">
-//               {profileDistrict}, {profileState}
-//             </span>
-//             <span className="text-[11px] font-semibold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
-//               My Location
-//             </span>
-//             {selectedProject && (
-//               <>
-//                 <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
-//                 <span className="text-sm font-semibold text-slate-700 truncate max-w-xs">
-//                   {selectedProject.name}
-//                 </span>
-//               </>
-//             )}
-//           </div>
-//         </div>
-
-//         {selectedProject && (
-//           <button
-//             onClick={() => setSelectedId(null)}
-//             className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-600 hover:border-blue-300 hover:text-blue-600 bg-white transition-colors"
-//           >
-//             <RotateCcw className="w-3.5 h-3.5" />
-//             Back to Projects
-//           </button>
-//         )}
-//       </div>
-
-//       {/* ══════════════════════════════════════════════════════════
-//           SPLIT LAYOUT: list left, flow right
-//       ══════════════════════════════════════════════════════════════ */}
-//       <div className={`grid gap-5 ${selectedProject ? 'grid-cols-1 lg:grid-cols-[340px_1fr]' : 'grid-cols-1'}`}>
-
-//         {/* ── LEFT: Project browser ─────────────────────────────── */}
-//         <div className="space-y-3">
-
-//           {/* Search */}
-//           <div className="relative">
-//             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-//             <input
-//               type="text"
-//               placeholder="Search projects or vendors…"
-//               value={search}
-//               onChange={e => setSearch(e.target.value)}
-//               className="w-full pl-9 pr-9 py-2.5 border border-slate-200 rounded-xl bg-white text-sm text-slate-700 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//             />
-//             {search && (
-//               <button
-//                 onClick={() => setSearch('')}
-//                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-//               >
-//                 <X className="w-3.5 h-3.5" />
-//               </button>
-//             )}
-//           </div>
-
-//           {/* Filters */}
-//           <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
-//             <div className="flex items-center justify-between">
-//               <div className="flex items-center gap-2">
-//                 <Filter className="w-3.5 h-3.5 text-slate-400" />
-//                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filters</span>
-//               </div>
-//               {anyFilter && (
-//                 <button
-//                   onClick={clearFilters}
-//                   className="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1 transition-colors"
-//                 >
-//                   <X className="w-3 h-3" /> Clear all
-//                 </button>
-//               )}
-//             </div>
-
-//             {/* Department */}
-//             <div>
-//               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-//                 Department
-//               </label>
-//               <div className="relative">
-//                 <select
-//                   value={filterDept}
-//                   onChange={e => { setFilterDept(e.target.value); setFilterScheme(''); }}
-//                   className="w-full appearance-none pl-3 pr-8 py-2 border border-slate-200 rounded-lg bg-slate-50 text-xs text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//                 >
-//                   <option value="">All Departments</option>
-//                   {DEPARTMENTS.map(d => (
-//                     <option key={d} value={d}>{d.replace('Ministry of ', 'Min. of ')}</option>
-//                   ))}
-//                 </select>
-//                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-//               </div>
-//             </div>
-
-//             {/* Scheme */}
-//             <div>
-//               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-//                 Scheme
-//               </label>
-//               <div className="relative">
-//                 <select
-//                   value={filterScheme}
-//                   onChange={e => setFilterScheme(e.target.value)}
-//                   className="w-full appearance-none pl-3 pr-8 py-2 border border-slate-200 rounded-lg bg-slate-50 text-xs text-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-//                 >
-//                   <option value="">All Schemes</option>
-//                   {schemeOptions.map(s => (
-//                     <option key={s} value={s}>{s}</option>
-//                   ))}
-//                 </select>
-//                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-//               </div>
-//             </div>
-
-//             {/* Status */}
-//             <div>
-//               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-//                 Project Status
-//               </label>
-//               <div className="flex flex-wrap gap-1.5">
-//                 {(['', ...ALL_STATUSES] as string[]).map(s => (
-//                   <button
-//                     key={s || 'all'}
-//                     onClick={() => setFilterStatus(s)}
-//                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all
-//                       ${filterStatus === s
-//                         ? 'bg-blue-600 text-white border-blue-600'
-//                         : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'
-//                       }`}
-//                   >
-//                     {s || 'All'}
-//                   </button>
-//                 ))}
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* Project count */}
-//           <div className="flex items-center justify-between px-1">
-//             <p className="text-xs text-slate-500">
-//               <span className="font-semibold text-slate-700">{filteredProjects.length}</span>
-//               {' '}of {allProjects.length} projects
-//             </p>
-//             {anyFilter && (
-//               <span className="text-xs text-blue-500 font-medium">Filtered</span>
-//             )}
-//           </div>
-
-//           {/* Project cards */}
-//           <div className="space-y-2 max-h-[calc(100vh-340px)] overflow-y-auto pr-0.5">
-//             {filteredProjects.length === 0 ? (
-//               <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
-//                 <Search className="w-8 h-8 text-slate-300 mx-auto mb-3" />
-//                 <p className="text-sm font-medium text-slate-500">No projects found</p>
-//                 <p className="text-xs text-slate-400 mt-1">Try adjusting your filters</p>
-//                 <button onClick={clearFilters} className="mt-3 text-xs text-blue-500 hover:underline">
-//                   Clear filters
-//                 </button>
-//               </div>
-//             ) : (
-//               filteredProjects.map(project => (
-//                 <ProjectCard
-//                   key={project.id}
-//                   project={project}
-//                   selected={selectedId === project.id}
-//                   onClick={() => setSelectedId(
-//                     selectedId === project.id ? null : project.id
-//                   )}
-//                 />
-//               ))
-//             )}
-//           </div>
-//         </div>
-
-//         {/* ── RIGHT: Flow view or empty state ──────────────────── */}
-//         {selectedProject ? (
-//           <div className="space-y-5">
-
-//             {/* Project summary header */}
-//             <div className="bg-white border border-slate-200 rounded-xl p-5">
-//               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-//                 <div className="flex-1 min-w-0">
-//                   <div className="flex items-center gap-2 flex-wrap mb-1">
-//                     {(() => {
-//                       const sc = PROJ_STATUS_CFG[selectedProject.status];
-//                       return (
-//                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${sc.bg} ${sc.text}`}>
-//                           <sc.Icon className="w-3 h-3" />
-//                           {selectedProject.status}
-//                         </span>
-//                       );
-//                     })()}
-//                     {selectedProject.anomalyFlag && (
-//                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded-full text-xs font-bold">
-//                         <AlertTriangle className="w-3 h-3" /> Anomaly Flagged
-//                       </span>
-//                     )}
-//                   </div>
-//                   <h3 className="text-lg font-bold text-slate-800 leading-snug">{selectedProject.name}</h3>
-//                   <p className="text-xs text-slate-500 mt-1">
-//                     {selectedProject.department} · {selectedProject.scheme}
-//                   </p>
-//                 </div>
-//                 <div className="flex gap-4 shrink-0">
-//                   <div className="text-center">
-//                     <p className="text-xs text-slate-400 mb-0.5">Allocated</p>
-//                     <p className="text-base font-bold text-slate-800">{formatCurrency(selectedProject.allocated)}</p>
-//                   </div>
-//                   <div className="text-center">
-//                     <p className="text-xs text-slate-400 mb-0.5">Utilized</p>
-//                     <p className="text-base font-bold text-emerald-600">{formatCurrency(selectedProject.utilized)}</p>
-//                   </div>
-//                   <div className="text-center">
-//                     <p className="text-xs text-slate-400 mb-0.5">Rate</p>
-//                     <p className="text-base font-bold text-blue-600">{utilizationPct}%</p>
-//                   </div>
-//                 </div>
-//               </div>
-
-//               {/* Utilization bar */}
-//               <div className="mt-4">
-//                 <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-//                   <div
-//                     className={`h-2 rounded-full transition-all duration-700
-//                       ${utilizationPct >= 80 ? 'bg-emerald-500' : utilizationPct >= 50 ? 'bg-blue-500' : 'bg-orange-400'}`}
-//                     style={{ width: `${Math.min(utilizationPct, 100)}%` }}
-//                   />
-//                 </div>
-//                 <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-//                   <span>₹ 0</span>
-//                   <span>{formatCurrency(selectedProject.allocated)} total</span>
-//                 </div>
-//               </div>
-
-//               {/* Quick stats row */}
-//               <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-slate-100">
-//                 <div className="flex items-center gap-2">
-//                   <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-//                     <Building2 className="w-3.5 h-3.5 text-blue-500" />
-//                   </div>
-//                   <div>
-//                     <p className="text-[10px] text-slate-400">Vendor</p>
-//                     <p className="text-xs font-semibold text-slate-700 leading-snug">{selectedProject.vendor}</p>
-//                   </div>
-//                 </div>
-//                 <div className="flex items-center gap-2">
-//                   <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center">
-//                     <Layers className="w-3.5 h-3.5 text-purple-500" />
-//                   </div>
-//                   <div>
-//                     <p className="text-[10px] text-slate-400">Flow Levels</p>
-//                     <p className="text-xs font-semibold text-slate-700">{flowNodes.length} nodes</p>
-//                   </div>
-//                 </div>
-//                 <div className="flex items-center gap-2">
-//                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${anomalyCount > 0 ? 'bg-red-50' : 'bg-emerald-50'}`}>
-//                     {anomalyCount > 0
-//                       ? <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-//                       : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-//                     }
-//                   </div>
-//                   <div>
-//                     <p className="text-[10px] text-slate-400">Anomalies</p>
-//                     <p className={`text-xs font-semibold ${anomalyCount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-//                       {anomalyCount > 0 ? `${anomalyCount} flagged` : 'None'}
-//                     </p>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-
-//             {/* Flow chain label */}
-//             <div className="flex items-center gap-3">
-//               <div className="h-px flex-1 bg-slate-200" />
-//               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-//                 Fund Flow Chain — Union Budget → Contractor
-//               </p>
-//               <div className="h-px flex-1 bg-slate-200" />
-//             </div>
-
-//             {/* Flow nodes */}
-//             <div className="relative">
-//               {flowNodes.map((node, i) => (
-//                 <FlowNodeCard
-//                   key={node.level}
-//                   node={node}
-//                   isLast={i === flowNodes.length - 1}
-//                 />
-//               ))}
-//             </div>
-//           </div>
-
-//         ) : (
-//           /* Empty state — shown before a project is selected */
-//           <div className="hidden lg:flex flex-col items-center justify-center bg-white border border-dashed border-slate-300 rounded-2xl p-16 text-center">
-//             <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-5">
-//               <TrendingUp className="w-8 h-8 text-blue-400" />
-//             </div>
-//             <h3 className="text-base font-bold text-slate-700 mb-2">Select a Project</h3>
-//             <p className="text-sm text-slate-400 max-w-xs leading-relaxed">
-//               Choose any project from the list on the left to trace its complete budget flow — from Union Budget all the way to the contractor.
-//             </p>
-//             <div className="mt-6 flex items-center gap-2 text-xs text-slate-400">
-//               <span className="px-2 py-1 bg-slate-100 rounded-md">Union Budget</span>
-//               <ChevronRight className="w-3.5 h-3.5" />
-//               <span className="px-2 py-1 bg-slate-100 rounded-md">Ministry</span>
-//               <ChevronRight className="w-3.5 h-3.5" />
-//               <span className="px-2 py-1 bg-slate-100 rounded-md">State</span>
-//               <ChevronRight className="w-3.5 h-3.5" />
-//               <span className="px-2 py-1 bg-slate-100 rounded-md">Contractor</span>
-//             </div>
-//           </div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Search, AlertCircle, CheckCircle2, Clock, XCircle,
   AlertTriangle, ArrowDown, MapPin, RotateCcw,
@@ -1166,6 +511,9 @@ function ProjectCard({ project, selected, onClick }: {
 }) {
   const sc = PROJ_STATUS_CFG[project.status];
   const utilPct = Math.round((project.utilized / project.allocated) * 100);
+  const isCompleted = project.status === 'Completed';
+  const isReportable = true; // all projects can receive citizen reports
+
   return (
     <button
       onClick={onClick}
@@ -1182,6 +530,9 @@ function ProjectCard({ project, selected, onClick }: {
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${sc.bg} ${sc.text}`}>
               <sc.Icon className="w-2.5 h-2.5 inline mr-0.5" />{project.status}
             </span>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-orange-50 text-orange-600 flex items-center gap-0.5">
+              <Flag className="w-2.5 h-2.5" />Report
+            </span>
           </div>
           <p className="text-sm font-semibold text-slate-800 leading-snug line-clamp-2">{project.name}</p>
           <p className="text-xs text-slate-400 mt-0.5">{project.id}</p>
@@ -1190,6 +541,10 @@ function ProjectCard({ project, selected, onClick }: {
           ${selected ? 'text-blue-500' : 'text-slate-300 group-hover:text-slate-400'}`} />
       </div>
       <p className="text-xs text-slate-500 truncate mb-2">{project.vendor}</p>
+      <p className="text-[10px] text-orange-600 font-medium mb-2 flex items-center gap-1">
+        <Flag className="w-3 h-3" />
+        Click to view fund flow &amp; raise a citizen report
+      </p>
       <div className="space-y-1">
         <div className="flex justify-between text-[10px] text-slate-400">
           <span>{formatCurrency(project.allocated)}</span>
@@ -1299,6 +654,16 @@ function FlowNodeCard({ node, isLast }: { node: FlowNode; isLast: boolean }) {
 export default function FlowTracker() {
   const profileState    = localStorage.getItem('govflow_state')    || 'Maharashtra';
   const profileDistrict = localStorage.getItem('govflow_district') || 'Mumbai';
+
+  const { projectId: urlProjectId } = useParams<{ projectId: string }>();
+
+  // Auto-select project from URL param on first load
+  useEffect(() => {
+    if (urlProjectId) {
+      setSelectedId(urlProjectId);
+      setShowReport(false);
+    }
+  }, [urlProjectId]);
 
   const allProjects = useMemo(
     () => getProjectsForLocation(profileState, profileDistrict),
@@ -1441,6 +806,29 @@ export default function FlowTracker() {
             </div>
           </div>
 
+          {/* Quick-filter: highlight completed projects */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-slate-400 font-medium">Quick:</span>
+            <button
+              onClick={() => setFilterStatus(filterStatus === 'Completed' ? '' : 'Completed')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all
+                ${filterStatus === 'Completed'
+                  ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Completed
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold
+                ${filterStatus === 'Completed' ? 'bg-white/30 text-white' : 'bg-emerald-200 text-emerald-800'}`}>
+                {allProjects.filter(p => p.status === 'Completed').length}
+              </span>
+            </button>
+            <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+              <Flag className="w-3 h-3 text-orange-500" />
+              Citizen reports available
+            </span>
+          </div>
+
           <div className="flex items-center justify-between px-1">
             <p className="text-xs text-slate-500">
               <span className="font-semibold text-slate-700">{filteredProjects.length}</span> of {allProjects.length} projects
@@ -1466,11 +854,11 @@ export default function FlowTracker() {
 
         {/* ── RIGHT: Flow view ──────────────────────────────────── */}
         {selectedProject ? (
-          <div className="space-y-5">
+          <div className="space-y-4">
 
-            {/* Project summary */}
+            {/* ── Project title bar ─────────────────────────────── */}
             <div className="bg-white border border-slate-200 rounded-xl p-5">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     {(() => { const sc = PROJ_STATUS_CFG[selectedProject.status]; return (
@@ -1480,7 +868,7 @@ export default function FlowTracker() {
                     ); })()}
                     {selectedProject.anomalyFlag && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded-full text-xs font-bold">
-                        <AlertTriangle className="w-3 h-3" />Anomaly Flagged
+                        <AlertTriangle className="w-3 h-3" />Anomaly
                       </span>
                     )}
                     {existingReport && (
@@ -1489,150 +877,148 @@ export default function FlowTracker() {
                       </span>
                     )}
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800 leading-snug">{selectedProject.name}</h3>
-                  <p className="text-xs text-slate-500 mt-1">{selectedProject.department} · {selectedProject.scheme}</p>
+                  <h3 className="text-base font-bold text-slate-800 leading-snug">{selectedProject.name}</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">{selectedProject.department} · {selectedProject.scheme}</p>
                 </div>
-                <div className="flex gap-4 shrink-0">
-                  <div className="text-center">
-                    <p className="text-xs text-slate-400 mb-0.5">Allocated</p>
-                    <p className="text-base font-bold text-slate-800">{formatCurrency(selectedProject.allocated)}</p>
+                <div className="flex gap-4 shrink-0 sm:text-right">
+                  <div>
+                    <p className="text-[10px] text-slate-400">Allocated</p>
+                    <p className="text-sm font-bold text-slate-800">{formatCurrency(selectedProject.allocated)}</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-xs text-slate-400 mb-0.5">Utilized</p>
-                    <p className="text-base font-bold text-emerald-600">{formatCurrency(selectedProject.utilized)}</p>
+                  <div>
+                    <p className="text-[10px] text-slate-400">Utilized</p>
+                    <p className="text-sm font-bold text-emerald-600">{formatCurrency(selectedProject.utilized)}</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-xs text-slate-400 mb-0.5">Rate</p>
-                    <p className="text-base font-bold text-blue-600">{utilizationPct}%</p>
+                  <div>
+                    <p className="text-[10px] text-slate-400">Rate</p>
+                    <p className="text-sm font-bold text-blue-600">{utilizationPct}%</p>
                   </div>
                 </div>
               </div>
-              <div className="mt-4">
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-700
-                      ${utilizationPct >= 80 ? 'bg-emerald-500' : utilizationPct >= 50 ? 'bg-blue-500' : 'bg-orange-400'}`}
-                    style={{ width: `${Math.min(utilizationPct, 100)}%` }}
-                  />
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-3 pt-4 border-t border-slate-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <Building2 className="w-3.5 h-3.5 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400">Vendor</p>
-                    <p className="text-xs font-semibold text-slate-700 leading-snug">{selectedProject.vendor}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center">
-                    <Layers className="w-3.5 h-3.5 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400">Flow Levels</p>
-                    <p className="text-xs font-semibold text-slate-700">{flowNodes.length} nodes</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${anomalyCount > 0 ? 'bg-red-50' : 'bg-emerald-50'}`}>
-                    {anomalyCount > 0
-                      ? <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                      : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400">Anomalies</p>
-                    <p className={`text-xs font-semibold ${anomalyCount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                      {anomalyCount > 0 ? `${anomalyCount} flagged` : 'None'}
-                    </p>
-                  </div>
+              <div className="mt-3">
+                <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                  <div className={`h-1.5 rounded-full transition-all duration-700
+                    ${utilizationPct >= 80 ? 'bg-emerald-500' : utilizationPct >= 50 ? 'bg-blue-500' : 'bg-orange-400'}`}
+                    style={{ width: `${Math.min(utilizationPct, 100)}%` }} />
                 </div>
               </div>
             </div>
 
-            {/* ── CITIZEN REPORT BANNER — only for Completed projects ── */}
-            {selectedProject.status === 'Completed' && !showReport && (
-              <div className={`rounded-xl border p-5 ${existingReport
-                ? 'bg-orange-50 border-orange-200'
-                : 'bg-gradient-to-r from-orange-50 to-red-50 border-orange-200'}`}
+            {/* ── TAB BAR ───────────────────────────────────────── */}
+            <div className="flex rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
+              <button
+                onClick={() => setShowReport(false)}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all
+                  ${!showReport
+                    ? 'bg-white text-blue-600 shadow-sm border-b-2 border-blue-500'
+                    : 'text-slate-500 hover:text-slate-700'}`}
               >
+                <TrendingUp className="w-4 h-4" />
+                Fund Flow
+                {anomalyCount > 0 && (
+                  <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded-full">
+                    {anomalyCount} ⚠
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setShowReport(true)}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-all
+                  ${showReport
+                    ? 'bg-white text-orange-600 shadow-sm border-b-2 border-orange-500'
+                    : 'text-slate-500 hover:text-orange-600 bg-orange-50/50'}`}
+              >
+                <Flag className="w-4 h-4" />
+                Citizen Report
+                {existingReport
+                  ? <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded-full">Filed</span>
+                  : <span className="px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded-full animate-pulse">New</span>
+                }
+              </button>
+            </div>
+
+            {/* ── TAB CONTENT ───────────────────────────────────── */}
+
+            {/* FUND FLOW tab */}
+            {!showReport && (
+              <div className="space-y-4">
+                <div className="relative">
+                  {flowNodes.map((node, i) => (
+                    <FlowNodeCard key={node.level} node={node} isLast={i === flowNodes.length - 1} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CITIZEN REPORT tab */}
+            {showReport && (
+              <div className="space-y-4">
                 {existingReport ? (
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
-                        <Flag className="w-5 h-5 text-orange-600" />
+                  /* ── Already submitted — block second submission ── */
+                  <div className="bg-white border-2 border-orange-200 rounded-2xl overflow-hidden">
+                    <div className="bg-gradient-to-r from-orange-500 to-red-500 px-6 py-5 flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-7 h-7 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-orange-800">Report Already Filed</p>
-                        <p className="text-xs text-orange-600 mt-0.5">
-                          You've submitted a complaint for this project. Issue: <strong>
-                            {ISSUE_TYPES.find(t => t.id === existingReport.issueType)?.label}
-                          </strong>
-                        </p>
-                        <p className="text-xs text-orange-500 mt-0.5">Status: Under Review · {existingReport.photoCount} photos attached</p>
+                        <h3 className="text-base font-bold text-white">Your Report is Registered</h3>
+                        <p className="text-xs text-orange-100 mt-0.5">Only one report allowed per citizen per project</p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setShowReport(true)}
-                      className="text-xs text-orange-600 hover:text-orange-700 font-semibold underline shrink-0"
-                    >
-                      File Another
-                    </button>
+                    <div className="p-6 space-y-4">
+                      <div className="bg-slate-50 rounded-xl p-4 space-y-3 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500">Issue Reported</span>
+                          <span className="font-semibold text-slate-800">
+                            {ISSUE_TYPES.find(t => t.id === existingReport.issueType)?.label}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500">Photos Submitted</span>
+                          <span className="font-semibold text-orange-600">{existingReport.photoCount} attached</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500">Reported By</span>
+                          <span className="font-semibold text-slate-700">{existingReport.reporterName}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-500">Status</span>
+                          <span className="font-semibold text-orange-600 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" /> Under Review
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                        <ShieldAlert className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                        <p className="text-xs text-blue-700 leading-relaxed">
+                          Your complaint has been forwarded to the concerned department. Each citizen can raise one report per project to prevent duplicate submissions. Other citizens can still file independent reports on this project.
+                        </p>
+                      </div>
+                      <div className="pt-2 border-t border-slate-100">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Reports from other citizens</p>
+                        <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-sm font-bold text-orange-600">
+                            {Math.floor(Math.random() * 8) + 2}
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-slate-700">Other citizens have also reported issues</p>
+                            <p className="text-xs text-slate-400">Authorities are reviewing all submissions</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
-                        <Users className="w-5 h-5 text-orange-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-orange-900">Are you satisfied with this project?</p>
-                        <p className="text-xs text-orange-700 mt-0.5 leading-relaxed">
-                          This project is marked <strong>Completed</strong>. If you live nearby and the work is
-                          incomplete, of poor quality, or funds were misused — report it with photo evidence.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 shrink-0 w-full sm:w-auto">
-                      <button className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200 transition-colors">
-                        <ThumbsUp className="w-3.5 h-3.5" />Satisfied
-                      </button>
-                      <button
-                        onClick={() => setShowReport(true)}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-xl shadow-sm shadow-red-200 transition-colors"
-                      >
-                        <Flag className="w-3.5 h-3.5" />Report Issue
-                      </button>
-                    </div>
-                  </div>
+                  /* ── Fresh report form ── */
+                  <CitizenReportPanel
+                    project={selectedProject}
+                    onClose={() => setShowReport(false)}
+                    onSubmit={handleReportSubmit}
+                  />
                 )}
               </div>
             )}
-
-            {/* ── Citizen Report Form (expanded) ── */}
-            {selectedProject.status === 'Completed' && showReport && (
-              <CitizenReportPanel
-                project={selectedProject}
-                onClose={() => setShowReport(false)}
-                onSubmit={handleReportSubmit}
-              />
-            )}
-
-            {/* Flow chain */}
-            <div className="flex items-center gap-3">
-              <div className="h-px flex-1 bg-slate-200" />
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                Fund Flow Chain — Union Budget → Contractor
-              </p>
-              <div className="h-px flex-1 bg-slate-200" />
-            </div>
-
-            <div className="relative">
-              {flowNodes.map((node, i) => (
-                <FlowNodeCard key={node.level} node={node} isLast={i === flowNodes.length - 1} />
-              ))}
-            </div>
 
           </div>
         ) : (

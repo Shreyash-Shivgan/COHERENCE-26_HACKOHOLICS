@@ -35,6 +35,7 @@ function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="flow" element={<FlowTracker />} />
+          <Route path="flow/:projectId" element={<FlowTracker />} />
           <Route path="anomalies" element={<Anomalies />} />
           <Route path="profile" element={<Profile />} />
           <Route path="reports" element={<div className="p-8 text-slate-500">Reports Module (Coming Soon)</div>} />
