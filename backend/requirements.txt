@@ -8,3 +8,6 @@ numpy
 scikit-learn
 python-multipart
 httpx
+sqlalchemy
+psycopg2-binary
+alembic
