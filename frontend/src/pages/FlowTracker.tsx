@@ -89,8 +89,13 @@ function CitizenReportPanel({
 
   const handleSubmit = () => {
     const report: CitizenReport = {
+      id: `RPT-${Date.now()}`,
       projectId: project.id,
       projectName: project.name,
+      department: project.department,
+      scheme: project.scheme,
+      vendor: project.vendor,
+      projectStatus: project.status,
       issueType,
       rating,
       description,
@@ -98,6 +103,7 @@ function CitizenReportPanel({
       reporterName: name,
       reporterPhone: phone,
       timestamp: new Date().toISOString(),
+      reviewStatus: 'Under Review',
     };
     onSubmit(report);
     setSubmitted(true);
@@ -494,8 +500,13 @@ function CitizenReportPanel({
 
 // ─── Types ─────────────────────────────────────────────────────────
 interface CitizenReport {
+  id: string;
   projectId: string;
   projectName: string;
+  department: string;
+  scheme: string;
+  vendor: string;
+  projectStatus: string;
   issueType: string;
   rating: number;
   description: string;
@@ -503,6 +514,7 @@ interface CitizenReport {
   reporterName: string;
   reporterPhone: string;
   timestamp: string;
+  reviewStatus: 'Under Review' | 'Acknowledged' | 'Resolved' | 'Rejected';
 }
 
 // ─── Project List Card ─────────────────────────────────────────────
@@ -695,7 +707,10 @@ export default function FlowTracker() {
 
   const [selectedId,     setSelectedId]     = useState<string | null>(null);
   const [showReport,     setShowReport]     = useState(false);
-  const [submittedReports, setSubmittedReports] = useState<CitizenReport[]>([]);
+  const [submittedReports, setSubmittedReports] = useState<CitizenReport[]>(() => {
+    try { return JSON.parse(localStorage.getItem('govflow_reports') || '[]'); }
+    catch { return []; }
+  });
 
   const selectedProject = allProjects.find(p => p.id === selectedId) ?? null;
   const flowNodes = useMemo(() =>
@@ -709,7 +724,9 @@ export default function FlowTracker() {
   const existingReport = submittedReports.find(r => r.projectId === selectedId);
 
   const handleReportSubmit = (report: CitizenReport) => {
-    setSubmittedReports(prev => [...prev, report]);
+    const updated = [...submittedReports, report];
+    setSubmittedReports(updated);
+    localStorage.setItem('govflow_reports', JSON.stringify(updated));
   };
 
   return (
