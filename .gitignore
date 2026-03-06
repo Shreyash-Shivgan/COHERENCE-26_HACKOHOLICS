@@ -4,3 +4,6 @@ venv/
 __pycache__/
 *.pyc
 *.pyo
+firebase_key.json backend/
+firebase_key.json
+serviceAccountKey.json .env
