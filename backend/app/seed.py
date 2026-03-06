@@ -6,6 +6,9 @@ Uses the same deterministic seeded-random logic as the frontend's indiaData.ts s
 from sqlalchemy.orm import Session
 from app.models.project_model import Project
 from app.models.anomaly import Anomaly
+import os
+import csv
+from datetime import datetime
 
 # ── Same taxonomy as the frontend ─────────────────────────────────────
 
@@ -125,10 +128,140 @@ def seed_database(db: Session):
         return
 
     try:
-        _do_seed(db)
+        csv_path = os.path.join(os.path.dirname(__file__), "ml", "data", "final_data.csv.csv")
+        if os.path.exists(csv_path):
+            _seed_from_csv(db, csv_path)
+        else:
+            _do_seed(db)
     except Exception as e:
         db.rollback()
         print(f"⚠ Seed failed: {e}")
+
+
+def _convert_date_format(date_str: str) -> str:
+    """Safely convert DD-MM-YYYY to YYYY-MM-DD. Handle empty/invalid dates."""
+    if not date_str:
+        return "2024-01-01"
+    try:
+        dt = datetime.strptime(date_str, "%d-%m-%Y")
+        return dt.strftime("%Y-%m-%d")
+    except ValueError:
+        return "2024-01-01"
+
+
+def _seed_from_csv(db: Session, csv_path: str):
+    print(f"Reading seed data from {csv_path}...")
+    project_counter = 0
+    anomaly_counter = 0
+    
+    with open(csv_path, newline='', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # We skip some rows to keep the DB size manageable, or load all
+            # Load first 300 to be safe on DB size and speed
+            if project_counter >= 300:
+                break
+                
+            city = row.get("city", "Unknown")
+            proj_type = row.get("project_type", "Project")
+            p_name = f"{city} {proj_type}"
+            
+            p_budget_str = row.get("project_budget", "0")
+            p_budget = float(p_budget_str) if p_budget_str else 0.0
+            
+            p_status = row.get("project_status", "Ongoing")
+            
+            dept = row.get("central_ministry", "")
+            scheme = row.get("central_scheme", "")
+            vendor = row.get("vendor_name", "")
+            state = row.get("state", "")
+            district = row.get("district", "")
+            
+            spent_str = row.get("spent_amount", "0")
+            spent = float(spent_str) if spent_str else 0.0
+            
+            start_date = _convert_date_format(row.get("project_start_date", ""))
+            
+            # Decide end date based on status
+            if p_status == "Completed":
+                end_date = _convert_date_format(row.get("actual_completion", ""))
+            else:
+                end_date = _convert_date_format(row.get("expected_completion", ""))
+            
+            # Predict anomaly: high complaints or delayed
+            complaints = int(row.get("citizen_complaints", "0"))
+            veri = row.get("completion_verified", "Yes")
+            rating = float(row.get("citizen_rating", "5.0"))
+            
+            anomaly_flag = False
+            if (p_status == "Delayed" and complaints > 150) or (veri == "No" and rating < 2.5):
+                anomaly_flag = True
+
+            proj = Project(
+                project_name=p_name,
+                project_type=proj_type,
+                project_budget=p_budget,
+                project_status=p_status,
+                department=dept,
+                scheme=scheme,
+                vendor=vendor,
+                state=state,
+                district=district,
+                utilized_amount=spent,
+                start_date=start_date,
+                end_date=end_date,
+                anomaly_flag=anomaly_flag,
+            )
+            db.add(proj)
+            db.flush() # flush to get project_id
+            
+            project_counter += 1
+            
+            if anomaly_flag or (project_counter % 12 == 0 and p_status == "Delayed"):
+                anomaly_counter += 1
+                
+                # Pick a random anomaly template
+                k = f"proj-{proj.project_id}"
+                tmpl = _pick(ANOMALY_TEMPLATES, _seed(k + "tmpl"))
+                a_status = _pick(ANOMALY_STATUSES, _seed(k + "astatus"))
+                
+                util_pct = round((proj.utilized_amount / max(proj.project_budget, 1)) * 100)
+                
+                desc = tmpl["desc_template"].format(
+                    vendor=proj.vendor,
+                    name=proj.project_name,
+                    tickets=complaints,
+                    district=proj.district,
+                    hist=(_seed(k + "hist") % 20) + 5,
+                    current=round(proj.project_budget / 100000),
+                    months=(_seed(k + "months") % 5) + 3,
+                    util_pct=util_pct,
+                    dup_amt=round(proj.project_budget * 0.3 / 100000),
+                    spent=round(proj.utilized_amount / 100000),
+                    phys_pct=round(util_pct * 0.6),
+                )
+                
+                anomaly = Anomaly(
+                    anomaly_id=f"ANM-2024-{anomaly_counter:04d}",
+                    project_id=proj.project_id,
+                    project_name=proj.project_name,
+                    department=proj.department,
+                    scheme=proj.scheme,
+                    vendor=proj.vendor,
+                    project_status=proj.project_status,
+                    anomaly_type=tmpl["type"],
+                    severity="High" if proj.anomaly_flag else tmpl["severity"],
+                    status=a_status,
+                    description=desc,
+                    amount_at_risk=round(proj.project_budget * (0.2 + (_seed(k + "risk") % 50) / 100)),
+                    date=_pick(ANOMALY_DATES, anomaly_counter),
+                    district=proj.district,
+                    state=proj.state,
+                )
+                db.add(anomaly)
+
+    db.commit()
+    print(f"✅ Seeded {project_counter} projects and {anomaly_counter} anomalies from CSV.")
 
 
 def _do_seed(db: Session):

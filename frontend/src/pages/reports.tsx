@@ -254,11 +254,11 @@ export default function Reports() {
           photoCount: r.photo_count,
           reporterName: r.reporter_name,
           reporterPhone: r.reporter_phone,
-          timestamp: r.created_at,
+          timestamp: r.timestamp || new Date().toISOString(),
           reviewStatus: 'Under Review', // Since we don't have review status yet in backend
           photos: r.photos || []
         }));
-        // Sort descending by created_at
+        // Sort descending by timestamp
         apiReports.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         setReports(apiReports);
       } catch (err) {

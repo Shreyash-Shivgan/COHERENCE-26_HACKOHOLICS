@@ -11,7 +11,7 @@ from app.schemas.complaint_schema import ComplaintCreate, ComplaintResponse
 router = APIRouter()
 
 
-@router.post("/", response_model=ComplaintResponse)
+@router.post("", response_model=ComplaintResponse)
 def submit_complaint(data: ComplaintCreate, db: Session = Depends(get_db)):
     dump_data = data.model_dump()
     photos_json = json.dumps(dump_data.pop("photos", []))
@@ -32,7 +32,7 @@ def submit_complaint(data: ComplaintCreate, db: Session = Depends(get_db)):
     return response_data
 
 
-@router.get("/", response_model=List[ComplaintResponse])
+@router.get("", response_model=List[ComplaintResponse])
 def list_complaints(db: Session = Depends(get_db)):
     complaints = db.query(Complaint).order_by(Complaint.id.desc()).all()
     results = []
