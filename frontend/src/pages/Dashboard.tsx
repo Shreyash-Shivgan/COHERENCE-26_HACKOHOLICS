@@ -317,7 +317,7 @@
 //   );
 // }
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   AreaChart, Area,
@@ -326,6 +326,7 @@ import {
   IndianRupee, AlertTriangle, TrendingUp, Activity, MapPin,
   ChevronDown, RotateCcw, Globe, Map, Building2, SlidersHorizontal,
   CheckSquare, Square, Clock, CheckCircle2, AlertCircle, XCircle, X,
+  Wifi, WifiOff,
 } from 'lucide-react';
 import {
   ALL_STATES, getDistricts, getStateBudgetData,
@@ -334,6 +335,7 @@ import {
   type ProjectStatus,
 } from '../data/indiaData';
 import { formatCurrency } from '../lib/utils';
+import { dashboardApi, projectsApi, type DashboardSummary, type ProjectData } from '../services/api';
 
 type ViewLevel = 'national' | 'state' | 'district';
 
@@ -361,8 +363,8 @@ function MultiSelect({
   const chipLabel = allSelected
     ? (placeholder ?? `All ${label}s`)
     : selected.length === 1
-    ? (selected[0].length > 24 ? selected[0].slice(0, 22) + '…' : selected[0])
-    : `${selected.length} selected`;
+      ? (selected[0].length > 24 ? selected[0].slice(0, 22) + '…' : selected[0])
+      : `${selected.length} selected`;
 
   return (
     <div className="relative w-full">
@@ -445,10 +447,10 @@ function MultiSelect({
 // Status badge
 // ─────────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<ProjectStatus, { bg: string; text: string; border: string; Icon: any }> = {
-  Ongoing:   { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',   Icon: Clock },
+  Ongoing: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', Icon: Clock },
   Completed: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', Icon: CheckCircle2 },
-  Delayed:   { bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-200',  Icon: AlertCircle },
-  Cancelled: { bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-200',     Icon: XCircle },
+  Delayed: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', Icon: AlertCircle },
+  Cancelled: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', Icon: XCircle },
 };
 
 function StatusBadge({ status }: { status: ProjectStatus }) {
@@ -467,10 +469,10 @@ function StatCard({ title, value, icon: Icon, sub, color }: {
   title: string; value: string; icon: any; sub: string; color: string;
 }) {
   const p: Record<string, string> = {
-    blue:    'bg-blue-50 text-blue-600 ring-blue-100',
+    blue: 'bg-blue-50 text-blue-600 ring-blue-100',
     emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
-    red:     'bg-red-50 text-red-600 ring-red-100',
-    orange:  'bg-orange-50 text-orange-600 ring-orange-100',
+    red: 'bg-red-50 text-red-600 ring-red-100',
+    orange: 'bg-orange-50 text-orange-600 ring-orange-100',
   };
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-5 flex flex-col gap-3">
@@ -490,22 +492,22 @@ function StatCard({ title, value, icon: Icon, sub, color }: {
 // Dashboard
 // ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const profileState    = localStorage.getItem('govflow_state')    || 'Maharashtra';
+  const profileState = localStorage.getItem('govflow_state') || 'Maharashtra';
   const profileDistrict = localStorage.getItem('govflow_district') || 'Mumbai';
 
   // ── Location state ──────────────────────────────────────────────
-  const [viewLevel,      setViewLevel]      = useState<ViewLevel>('district');
-  const [activeState,    setActiveState]    = useState(profileState);
+  const [viewLevel, setViewLevel] = useState<ViewLevel>('district');
+  const [activeState, setActiveState] = useState(profileState);
   const [activeDistrict, setActiveDistrict] = useState(profileDistrict);
-  const [draftState,     setDraftState]     = useState(profileState);
-  const [draftDistrict,  setDraftDistrict]  = useState(profileDistrict);
+  const [draftState, setDraftState] = useState(profileState);
+  const [draftDistrict, setDraftDistrict] = useState(profileDistrict);
   const draftDistricts = getDistricts(draftState);
 
   // ── Gov-work filter state ───────────────────────────────────────
-  const [selDepts,    setSelDepts]    = useState<string[]>([]);
-  const [selSchemes,  setSelSchemes]  = useState<string[]>([]);
+  const [selDepts, setSelDepts] = useState<string[]>([]);
+  const [selSchemes, setSelSchemes] = useState<string[]>([]);
   const [selProjects, setSelProjects] = useState<string[]>([]);
-  const [selVendors,  setSelVendors]  = useState<string[]>([]);
+  const [selVendors, setSelVendors] = useState<string[]>([]);
   const [selStatuses, setSelStatuses] = useState<string[]>([]);
 
   const resetGovFilters = () => {
@@ -532,22 +534,69 @@ export default function Dashboard() {
 
   const resetToMyLocation = () => {
     setViewLevel('district');
-    setActiveState(profileState);    setActiveDistrict(profileDistrict);
-    setDraftState(profileState);     setDraftDistrict(profileDistrict);
+    setActiveState(profileState); setActiveDistrict(profileDistrict);
+    setDraftState(profileState); setDraftDistrict(profileDistrict);
     resetGovFilters();
   };
 
   // ── Budget summary data ─────────────────────────────────────────
-  const budgetData = useMemo(() =>
+  const localBudgetData = useMemo(() =>
     viewLevel === 'national' ? getStateBudgetData('India') :
-    viewLevel === 'state'    ? getStateBudgetData(activeState) :
-                               getStateBudgetData(activeState, activeDistrict),
+      viewLevel === 'state' ? getStateBudgetData(activeState) :
+        getStateBudgetData(activeState, activeDistrict),
     [viewLevel, activeState, activeDistrict]);
 
+  // ── API data state ─────────────────────────────────────────────
+  const [apiConnected, setApiConnected] = useState(false);
+  const [apiBudgetData, setApiBudgetData] = useState<DashboardSummary | null>(null);
+  const [apiProjects, setApiProjects] = useState<ProjectData[] | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const district = viewLevel === 'district' ? activeDistrict : undefined;
+        const state = viewLevel === 'national' ? 'Maharashtra' : activeState;
+        const [summaryRes, projectsRes] = await Promise.all([
+          dashboardApi.getSummary(state, district),
+          viewLevel === 'district'
+            ? projectsApi.list({ state: activeState, district: activeDistrict })
+            : Promise.resolve({ data: [] as ProjectData[] }),
+        ]);
+        setApiBudgetData(summaryRes.data);
+        setApiProjects(projectsRes.data);
+        setApiConnected(true);
+      } catch {
+        setApiConnected(false);
+        setApiBudgetData(null);
+        setApiProjects(null);
+      }
+    };
+    fetchData();
+  }, [viewLevel, activeState, activeDistrict]);
+
+  // Use API data if connected, otherwise fall back to mock
+  const budgetData = apiBudgetData || localBudgetData;
+
   // ── All projects for current district ──────────────────────────
-  const allProjects = useMemo(() =>
+  const localProjects = useMemo(() =>
     viewLevel === 'district' ? getProjectsForLocation(activeState, activeDistrict) : [],
     [viewLevel, activeState, activeDistrict]);
+
+  const allProjects = apiProjects && apiProjects.length > 0
+    ? apiProjects.map(p => ({
+      id: `PRJ-${p.project_id}`,
+      name: p.project_name,
+      department: p.department || '',
+      scheme: p.scheme || '',
+      vendor: p.vendor || '',
+      status: (p.project_status || 'Ongoing') as ProjectStatus,
+      allocated: p.project_budget,
+      utilized: p.utilized_amount,
+      startDate: p.start_date || '',
+      endDate: p.end_date || '',
+      anomalyFlag: p.anomaly_flag,
+    }))
+    : localProjects;
 
   // ── Cascading filter options ────────────────────────────────────
   // Schemes: filtered by selected depts
@@ -560,7 +609,7 @@ export default function Dashboard() {
   // Projects: filtered by dept + scheme
   const filteredByDeptScheme = useMemo(() =>
     allProjects
-      .filter(p => selDepts.length   === 0 || selDepts.includes(p.department))
+      .filter(p => selDepts.length === 0 || selDepts.includes(p.department))
       .filter(p => selSchemes.length === 0 || selSchemes.includes(p.scheme)),
     [allProjects, selDepts, selSchemes]);
 
@@ -581,15 +630,15 @@ export default function Dashboard() {
   // Final filtered projects for the table
   const filteredProjects = useMemo(() =>
     filteredByDeptSchemeProject
-      .filter(p => selVendors.length  === 0 || selVendors.includes(p.vendor))
+      .filter(p => selVendors.length === 0 || selVendors.includes(p.vendor))
       .filter(p => selStatuses.length === 0 || selStatuses.includes(p.status)),
     [filteredByDeptSchemeProject, selVendors, selStatuses]);
 
   // ── Derived labels ──────────────────────────────────────────────
   const locationLabel =
     viewLevel === 'national' ? 'National Overview' :
-    viewLevel === 'state'    ? activeState :
-                               `${activeDistrict}, ${activeState}`;
+      viewLevel === 'state' ? activeState :
+        `${activeDistrict}, ${activeState}`;
 
   const isMyLocation =
     viewLevel === 'district' &&
@@ -605,7 +654,16 @@ export default function Dashboard() {
       {/* ── Page Header ──────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Platform Overview</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-slate-800">Platform Overview</h2>
+            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-medium rounded-full border ${apiConnected
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-slate-50 text-slate-500 border-slate-200'
+              }`}>
+              {apiConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+              {apiConnected ? 'Live' : 'Mock Data'}
+            </span>
+          </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
             <span className="text-sm text-slate-500">
@@ -623,7 +681,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 self-start">
           {([
             { level: 'national' as ViewLevel, label: 'National', Icon: Globe },
-            { level: 'state'    as ViewLevel, label: 'State',    Icon: Map },
+            { level: 'state' as ViewLevel, label: 'State', Icon: Map },
             { level: 'district' as ViewLevel, label: 'District', Icon: Building2 },
           ]).map(({ level, label, Icon }) => (
             <button
@@ -735,11 +793,10 @@ export default function Dashboard() {
           <div className="flex items-center gap-1 mb-5 overflow-x-auto pb-1">
             {['Department', 'Scheme', 'Project', 'Vendor', 'Status'].map((step, i) => (
               <div key={step} className="flex items-center gap-1 shrink-0">
-                <span className={`text-xs px-2 py-1 rounded-lg font-medium ${
-                  [selDepts, selSchemes, selProjects, selVendors, selStatuses][i].length > 0
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-500'
-                }`}>
+                <span className={`text-xs px-2 py-1 rounded-lg font-medium ${[selDepts, selSchemes, selProjects, selVendors, selStatuses][i].length > 0
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-100 text-slate-500'
+                  }`}>
                   {step}
                 </span>
                 {i < 4 && <ChevronDown className="w-3 h-3 text-slate-300 rotate-[-90deg] shrink-0" />}
@@ -815,10 +872,10 @@ export default function Dashboard() {
           {activeGovFilterCount > 0 && (
             <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-100">
               {[
-                ...selDepts.map(v    => ({ label: v, clear: () => setSelDepts(selDepts.filter(x => x !== v)) })),
-                ...selSchemes.map(v  => ({ label: v, clear: () => setSelSchemes(selSchemes.filter(x => x !== v)) })),
+                ...selDepts.map(v => ({ label: v, clear: () => setSelDepts(selDepts.filter(x => x !== v)) })),
+                ...selSchemes.map(v => ({ label: v, clear: () => setSelSchemes(selSchemes.filter(x => x !== v)) })),
                 ...selProjects.map(v => ({ label: v, clear: () => setSelProjects(selProjects.filter(x => x !== v)) })),
-                ...selVendors.map(v  => ({ label: v, clear: () => setSelVendors(selVendors.filter(x => x !== v)) })),
+                ...selVendors.map(v => ({ label: v, clear: () => setSelVendors(selVendors.filter(x => x !== v)) })),
                 ...selStatuses.map(v => ({ label: v, clear: () => setSelStatuses(selStatuses.filter(x => x !== v)) })),
               ].map(({ label, clear }) => (
                 <span
@@ -902,7 +959,7 @@ export default function Dashboard() {
                 />
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="allocated" name="Allocated" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="utilized"  name="Utilized"  fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="utilized" name="Utilized" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -916,7 +973,7 @@ export default function Dashboard() {
               <AreaChart data={budgetData.anomaliesTrend}>
                 <defs>
                   <linearGradient id="aGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.12} />
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.12} />
                     <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                   </linearGradient>
                 </defs>

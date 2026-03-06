@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, ArrowUpRight, Filter, Search, X,
@@ -15,19 +15,20 @@ import {
   type Anomaly, type AnomalySeverity, type AnomalyStatus,
 } from '../data/indiaData';
 import { formatCurrency } from '../lib/utils';
+import { anomaliesApi, type AnomalyData } from '../services/api';
 
 // ─── Config maps ──────────────────────────────────────────────────
 const SEVERITY_CFG: Record<AnomalySeverity, { bar: string; badge: string; text: string; border: string }> = {
-  High:   { bar: 'bg-red-500',    badge: 'bg-red-100 text-red-700 border-red-200',    text: 'text-red-700',    border: 'border-l-red-500' },
+  High: { bar: 'bg-red-500', badge: 'bg-red-100 text-red-700 border-red-200', text: 'text-red-700', border: 'border-l-red-500' },
   Medium: { bar: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700 border-orange-200', text: 'text-orange-700', border: 'border-l-orange-500' },
-  Low:    { bar: 'bg-yellow-400', badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', text: 'text-yellow-700', border: 'border-l-yellow-400' },
+  Low: { bar: 'bg-yellow-400', badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', text: 'text-yellow-700', border: 'border-l-yellow-400' },
 };
 
 const STATUS_CFG: Record<AnomalyStatus, { dot: string; text: string; bg: string }> = {
-  'Investigating':     { dot: 'bg-blue-500',   text: 'text-blue-700',   bg: 'bg-blue-50'   },
+  'Investigating': { dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-50' },
   'Flagged for Audit': { dot: 'bg-orange-500', text: 'text-orange-700', bg: 'bg-orange-50' },
-  'Warning Issued':    { dot: 'bg-yellow-500', text: 'text-yellow-700', bg: 'bg-yellow-50' },
-  'Resolved':          { dot: 'bg-emerald-500',text: 'text-emerald-700',bg: 'bg-emerald-50'},
+  'Warning Issued': { dot: 'bg-yellow-500', text: 'text-yellow-700', bg: 'bg-yellow-50' },
+  'Resolved': { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
 };
 
 // ─── Multi-select dropdown (same pattern as Dashboard) ───────────
@@ -44,7 +45,7 @@ function MultiSelect({
 
   const chipLabel = allSel ? `All ${label}s`
     : selected.length === 1 ? (selected[0].length > 24 ? selected[0].slice(0, 22) + '…' : selected[0])
-    : `${selected.length} selected`;
+      : `${selected.length} selected`;
 
   return (
     <div className="relative w-full">
@@ -122,9 +123,9 @@ function AnomalyCard({ anomaly, onViewDetails }: { anomaly: Anomaly; onViewDetai
           <div>
             <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
               {anomaly.type === 'Abnormal Allocation Spike' && <ArrowUpRight className="w-4 h-4 text-orange-500 shrink-0" />}
-              {anomaly.type === 'Verification Mismatch'    && <BadgeAlert className="w-4 h-4 text-red-500 shrink-0" />}
-              {anomaly.type === 'Fund Idling'              && <TrendingDown className="w-4 h-4 text-yellow-500 shrink-0" />}
-              {anomaly.type === 'Duplicate Disbursement'   && <FileWarning className="w-4 h-4 text-red-500 shrink-0" />}
+              {anomaly.type === 'Verification Mismatch' && <BadgeAlert className="w-4 h-4 text-red-500 shrink-0" />}
+              {anomaly.type === 'Fund Idling' && <TrendingDown className="w-4 h-4 text-yellow-500 shrink-0" />}
+              {anomaly.type === 'Duplicate Disbursement' && <FileWarning className="w-4 h-4 text-red-500 shrink-0" />}
               {anomaly.type === 'Contractor Non-Performance' && <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" />}
               {anomaly.type}
             </h3>
@@ -180,14 +181,14 @@ function AnomalyCard({ anomaly, onViewDetails }: { anomaly: Anomaly; onViewDetai
 // ─── Main Page ────────────────────────────────────────────────────
 export default function Anomalies() {
   const navigate = useNavigate();
-  const profileState    = localStorage.getItem('govflow_state')    || 'Maharashtra';
+  const profileState = localStorage.getItem('govflow_state') || 'Maharashtra';
   const profileDistrict = localStorage.getItem('govflow_district') || 'Mumbai';
 
   // ── Location filter (State → District) ──────────────────────
-  const [activeState,    setActiveState]    = useState(profileState);
+  const [activeState, setActiveState] = useState(profileState);
   const [activeDistrict, setActiveDistrict] = useState(profileDistrict);
-  const [draftState,     setDraftState]     = useState(profileState);
-  const [draftDistrict,  setDraftDistrict]  = useState(profileDistrict);
+  const [draftState, setDraftState] = useState(profileState);
+  const [draftDistrict, setDraftDistrict] = useState(profileDistrict);
   const draftDistricts = getDistricts(draftState);
 
   const handleDraftStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -203,28 +204,60 @@ export default function Anomalies() {
   };
 
   const resetToMyLocation = () => {
-    setActiveState(profileState);    setActiveDistrict(profileDistrict);
-    setDraftState(profileState);     setDraftDistrict(profileDistrict);
+    setActiveState(profileState); setActiveDistrict(profileDistrict);
+    setDraftState(profileState); setDraftDistrict(profileDistrict);
     resetGovFilters();
   };
 
   const isMyLocation = activeState === profileState && activeDistrict === profileDistrict;
 
   // Anomalies for the active location
-  const allAnomalies = useMemo(
+  const localAnomalies = useMemo(
     () => getAnomaliesForLocation(activeState, activeDistrict),
     [activeState, activeDistrict]
   );
+
+  const [apiAnomalies, setApiAnomalies] = useState<AnomalyData[] | null>(null);
+
+  useEffect(() => {
+    const fetchAnomalies = async () => {
+      try {
+        const res = await anomaliesApi.list({ state: activeState, district: activeDistrict });
+        setApiAnomalies(res.data);
+      } catch {
+        setApiAnomalies(null);
+      }
+    };
+    fetchAnomalies();
+  }, [activeState, activeDistrict]);
+
+  const allAnomalies = apiAnomalies && apiAnomalies.length > 0
+    ? apiAnomalies.map(a => ({
+      id: a.anomaly_id,
+      projectId: a.project_id,
+      projectName: a.project_name,
+      department: a.department,
+      scheme: a.scheme,
+      vendor: a.vendor,
+      status: a.status as any,
+      severity: a.severity as any,
+      type: a.anomaly_type,
+      description: a.description,
+      amountAtRisk: a.amount_at_risk,
+      date: a.date,
+      district: a.district,
+    }))
+    : localAnomalies;
 
   // ── Search ────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
 
   // ── Gov-work filters (same order as Dashboard) ───────────────
-  const [selDepts,      setSelDepts]      = useState<string[]>([]);
-  const [selSchemes,    setSelSchemes]    = useState<string[]>([]);
-  const [selVendors,    setSelVendors]    = useState<string[]>([]);
+  const [selDepts, setSelDepts] = useState<string[]>([]);
+  const [selSchemes, setSelSchemes] = useState<string[]>([]);
+  const [selVendors, setSelVendors] = useState<string[]>([]);
   const [selSeverities, setSelSeverities] = useState<string[]>([]);
-  const [selStatuses,   setSelStatuses]   = useState<string[]>([]);
+  const [selStatuses, setSelStatuses] = useState<string[]>([]);
 
   const resetGovFilters = () => {
     setSearch('');
@@ -246,7 +279,7 @@ export default function Anomalies() {
   const availableVendors = useMemo(() =>
     [...new Set(
       allAnomalies
-        .filter(a => selDepts.length   === 0 || selDepts.includes(a.department))
+        .filter(a => selDepts.length === 0 || selDepts.includes(a.department))
         .filter(a => selSchemes.length === 0 || selSchemes.includes(a.scheme))
         .map(a => a.vendor)
     )],
@@ -255,11 +288,11 @@ export default function Anomalies() {
   // Final filtered list
   const filtered = useMemo(() =>
     allAnomalies
-      .filter(a => selDepts.length      === 0 || selDepts.includes(a.department))
-      .filter(a => selSchemes.length    === 0 || selSchemes.includes(a.scheme))
-      .filter(a => selVendors.length    === 0 || selVendors.includes(a.vendor))
+      .filter(a => selDepts.length === 0 || selDepts.includes(a.department))
+      .filter(a => selSchemes.length === 0 || selSchemes.includes(a.scheme))
+      .filter(a => selVendors.length === 0 || selVendors.includes(a.vendor))
       .filter(a => selSeverities.length === 0 || selSeverities.includes(a.severity))
-      .filter(a => selStatuses.length   === 0 || selStatuses.includes(a.status))
+      .filter(a => selStatuses.length === 0 || selStatuses.includes(a.status))
       .filter(a => !search
         || a.projectName.toLowerCase().includes(search.toLowerCase())
         || a.type.toLowerCase().includes(search.toLowerCase())
@@ -268,9 +301,9 @@ export default function Anomalies() {
     [allAnomalies, selDepts, selSchemes, selVendors, selSeverities, selStatuses, search]);
 
   // Summary counts
-  const highCount   = filtered.filter(a => a.severity === 'High').length;
+  const highCount = filtered.filter(a => a.severity === 'High').length;
   const mediumCount = filtered.filter(a => a.severity === 'Medium').length;
-  const lowCount    = filtered.filter(a => a.severity === 'Low').length;
+  const lowCount = filtered.filter(a => a.severity === 'Low').length;
   const totalAtRisk = filtered.reduce((s, a) => s + a.amountAtRisk, 0);
 
   return (
@@ -300,10 +333,10 @@ export default function Anomalies() {
       {/* ── Summary stat row ─────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'High Priority',   count: highCount,   color: 'bg-red-50 border-red-200 text-red-700',    dot: 'bg-red-500' },
+          { label: 'High Priority', count: highCount, color: 'bg-red-50 border-red-200 text-red-700', dot: 'bg-red-500' },
           { label: 'Medium Priority', count: mediumCount, color: 'bg-orange-50 border-orange-200 text-orange-700', dot: 'bg-orange-500' },
-          { label: 'Low Priority',    count: lowCount,    color: 'bg-yellow-50 border-yellow-200 text-yellow-700', dot: 'bg-yellow-400' },
-          { label: 'Total at Risk',   count: null, value: formatCurrency(totalAtRisk), color: 'bg-slate-50 border-slate-200 text-slate-700', dot: 'bg-slate-400' },
+          { label: 'Low Priority', count: lowCount, color: 'bg-yellow-50 border-yellow-200 text-yellow-700', dot: 'bg-yellow-400' },
+          { label: 'Total at Risk', count: null, value: formatCurrency(totalAtRisk), color: 'bg-slate-50 border-slate-200 text-slate-700', dot: 'bg-slate-400' },
         ].map(({ label, count, value, color, dot }) => (
           <div key={label} className={`rounded-xl border p-4 flex items-center gap-3 ${color}`}>
             <div className={`w-3 h-3 rounded-full shrink-0 ${dot}`} />
@@ -462,11 +495,11 @@ export default function Anomalies() {
         {activeFilterCount > 0 && (
           <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-100">
             {[
-              ...selDepts.map(v      => ({ label: v, clear: () => setSelDepts(selDepts.filter(x => x !== v)) })),
-              ...selSchemes.map(v    => ({ label: v, clear: () => setSelSchemes(selSchemes.filter(x => x !== v)) })),
-              ...selVendors.map(v    => ({ label: v, clear: () => setSelVendors(selVendors.filter(x => x !== v)) })),
+              ...selDepts.map(v => ({ label: v, clear: () => setSelDepts(selDepts.filter(x => x !== v)) })),
+              ...selSchemes.map(v => ({ label: v, clear: () => setSelSchemes(selSchemes.filter(x => x !== v)) })),
+              ...selVendors.map(v => ({ label: v, clear: () => setSelVendors(selVendors.filter(x => x !== v)) })),
               ...selSeverities.map(v => ({ label: v, clear: () => setSelSeverities(selSeverities.filter(x => x !== v)) })),
-              ...selStatuses.map(v   => ({ label: v, clear: () => setSelStatuses(selStatuses.filter(x => x !== v)) })),
+              ...selStatuses.map(v => ({ label: v, clear: () => setSelStatuses(selStatuses.filter(x => x !== v)) })),
             ].map(({ label, clear }) => (
               <span key={label}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium rounded-lg">

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, Mail, Lock, User, Building, ArrowRight, Users } from 'lucide-react';
+import { ShieldAlert, Mail, Lock, User, Building, ArrowRight, Users, AlertCircle } from 'lucide-react';
+import { authApi } from '../services/api';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [role, setRole] = useState<'citizen' | 'admin'>('citizen');
   const [fullName, setFullName] = useState('');
   const [department, setDepartment] = useState('');
@@ -12,24 +14,45 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Mocking an API call to Firebase/FastAPI
-    setTimeout(() => {
-      setIsLoading(false);
-      // Set a mock auth token and role in local storage
+    setError('');
+
+    try {
+      let response;
+      if (isLogin) {
+        response = await authApi.login({ email, password });
+      } else {
+        response = await authApi.register({
+          email,
+          password,
+          full_name: fullName.trim(),
+          role,
+          department: department.trim(),
+        });
+      }
+
+      const { access_token, user } = response.data;
+
+      // Store auth state
       localStorage.setItem('govflow_auth', 'true');
-      localStorage.setItem('govflow_role', role);
+      localStorage.setItem('govflow_token', access_token);
+      localStorage.setItem('govflow_role', user.role);
       localStorage.setItem('govflow_user_profile', JSON.stringify({
-        fullName: fullName.trim(),
-        email: email.trim(),
-        department: department.trim(),
-        role
+        fullName: user.full_name,
+        email: user.email,
+        department: user.department,
+        role: user.role,
       }));
+
       navigate('/');
-    }, 1000);
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail || 'Something went wrong. Please try again.';
+      setError(detail);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -56,17 +79,25 @@ export default function Auth() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-2xl sm:px-10 border border-slate-100">
-          
+
           <div className="mb-6 text-center">
             <h3 className="text-xl font-bold text-slate-800">
               {isLogin ? 'Sign in to your account' : 'Create an account'}
             </h3>
             <p className="text-sm text-slate-500 mt-1">
-              {isLogin 
-                ? 'Enter your credentials to access the dashboard' 
+              {isLogin
+                ? 'Enter your credentials to access the dashboard'
                 : 'Register to monitor budget flows or report anomalies'}
             </p>
           </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Role Selection */}
@@ -78,11 +109,10 @@ export default function Auth() {
                 <button
                   type="button"
                   onClick={() => setRole('citizen')}
-                  className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-                    role === 'citizen'
+                  className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${role === 'citizen'
                       ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
                       : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   <Users className="w-4 h-4" />
                   Citizen
@@ -90,11 +120,10 @@ export default function Auth() {
                 <button
                   type="button"
                   onClick={() => setRole('admin')}
-                  className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-                    role === 'admin'
+                  className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${role === 'admin'
                       ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
                       : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   <ShieldAlert className="w-4 h-4" />
                   Gov Admin
@@ -104,7 +133,6 @@ export default function Auth() {
 
             {!isLogin && (
               <>
-
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
                   <div className="relative">
@@ -122,7 +150,6 @@ export default function Auth() {
                   </div>
                 </div>
 
-                {/* Only show Department if the user is a Government Admin */}
                 {role === 'admin' && (
                   <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Department / Ministry</label>
@@ -137,11 +164,11 @@ export default function Auth() {
                         className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent sm:text-sm bg-slate-50 focus:bg-white transition-colors text-slate-700"
                       >
                         <option value="">Select Department</option>
-                        <option value="finance">Ministry of Finance</option>
-                        <option value="health">Ministry of Health</option>
-                        <option value="transport">Ministry of Road Transport</option>
-                        <option value="state">State Government Official</option>
-                        <option value="municipal">Municipal Corporation</option>
+                        <option value="Ministry of Finance">Ministry of Finance</option>
+                        <option value="Ministry of Health & Family Welfare">Ministry of Health</option>
+                        <option value="Ministry of Road Transport & Highways">Ministry of Road Transport</option>
+                        <option value="State Government Official">State Government Official</option>
+                        <option value="Municipal Corporation">Municipal Corporation</option>
                       </select>
                     </div>
                   </div>
@@ -198,7 +225,6 @@ export default function Auth() {
                     Remember me
                   </label>
                 </div>
-
                 <div className="text-sm">
                   <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
                     Forgot password?
@@ -237,7 +263,7 @@ export default function Auth() {
 
             <div className="mt-6">
               <button
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => { setIsLogin(!isLogin); setError(''); }}
                 className="w-full flex justify-center py-2.5 px-4 border border-slate-300 rounded-lg shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
               >
                 {isLogin ? 'Create an account' : 'Sign in to existing account'}
@@ -245,7 +271,7 @@ export default function Auth() {
             </div>
           </div>
         </div>
-        
+
         <p className="text-center text-xs text-slate-400 mt-8">
           Secure Government Portal • Citizen & Authorized Personnel Access
         </p>

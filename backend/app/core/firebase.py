@@ -1,33 +1,27 @@
-# import firebase_admin
-# from firebase_admin import credentials, auth
-# import os
+"""
+Firebase module — replaced with JWT-based auth for standalone development.
+Firebase can be restored by uncommenting the original code and providing firebase_key.json.
+"""
 
-# # cred = credentials.Certificate("firebase_key.json")
-
-# # firebase_admin.initialize_app(cred)
-
-# # def verify_token(token: str):
-# #     try:
-# #         decoded_token = auth.verify_id_token(token)
-# #         return decoded_token
-# #     except Exception:
-# #         return None
-# def verify_token(token: str):
-#     return {"user": "dev_mode"}
-
-import firebase_admin
-from firebase_admin import credentials, firestore, auth
-
-cred = credentials.Certificate("firebase_key.json")
-
-firebase_admin.initialize_app(cred)
-
-db = firestore.client()
+from jose import JWTError, jwt
+from app.config import SECRET_KEY, ALGORITHM
 
 
 def verify_token(token: str):
+    """Decode a JWT token and return the payload, or None if invalid."""
     try:
-        decoded = auth.verify_id_token(token)
-        return decoded
-    except Exception:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
         return None
+
+
+def create_access_token(data: dict):
+    """Create a JWT access token."""
+    from datetime import datetime, timedelta, timezone
+    from app.config import ACCESS_TOKEN_EXPIRE_MINUTES
+
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)

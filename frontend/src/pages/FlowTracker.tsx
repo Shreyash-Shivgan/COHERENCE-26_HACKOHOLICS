@@ -14,29 +14,30 @@ import {
   type Project, type ProjectStatus, type FlowNode,
 } from '../data/indiaData';
 import { formatCurrency } from '../lib/utils';
+import { projectsApi, complaintsApi, type ProjectData, type FlowNodeData } from '../services/api';
 
 // ─── Status configs ────────────────────────────────────────────────
 const FLOW_STATUS_CFG: Record<string, { bg: string; text: string; border: string; Icon: any }> = {
-  'Disbursed':           { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', Icon: CheckCircle2 },
-  'Partially Disbursed': { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    Icon: Clock },
-  'Flagged':             { bg: 'bg-red-50',      text: 'text-red-700',     border: 'border-red-200',     Icon: AlertCircle },
-  'Pending':             { bg: 'bg-slate-100',   text: 'text-slate-600',   border: 'border-slate-200',   Icon: Clock },
+  'Disbursed': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', Icon: CheckCircle2 },
+  'Partially Disbursed': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', Icon: Clock },
+  'Flagged': { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', Icon: AlertCircle },
+  'Pending': { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', Icon: Clock },
 };
 
 const PROJ_STATUS_CFG: Record<ProjectStatus, { bg: string; text: string; Icon: any }> = {
-  Ongoing:   { bg: 'bg-blue-50',    text: 'text-blue-700',    Icon: Clock },
+  Ongoing: { bg: 'bg-blue-50', text: 'text-blue-700', Icon: Clock },
   Completed: { bg: 'bg-emerald-50', text: 'text-emerald-700', Icon: CheckCircle2 },
-  Delayed:   { bg: 'bg-orange-50',  text: 'text-orange-700',  Icon: AlertCircle },
-  Cancelled: { bg: 'bg-red-50',     text: 'text-red-700',     Icon: XCircle },
+  Delayed: { bg: 'bg-orange-50', text: 'text-orange-700', Icon: AlertCircle },
+  Cancelled: { bg: 'bg-red-50', text: 'text-red-700', Icon: XCircle },
 };
 
 // ─── Issue type options ────────────────────────────────────────────
 const ISSUE_TYPES = [
-  { id: 'not_done',     label: 'Work Not Done',        desc: 'Project marked complete but work is visibly incomplete' },
-  { id: 'poor_quality', label: 'Poor Quality',         desc: 'Work done but quality is unsatisfactory or substandard' },
-  { id: 'partial',      label: 'Partially Completed',  desc: 'Only part of the project scope has been executed' },
-  { id: 'damaged',      label: 'Already Damaged',      desc: 'Work completed but structure/asset has already deteriorated' },
-  { id: 'misuse',       label: 'Funds Misused',        desc: 'Evidence of corruption or misuse of allocated funds' },
+  { id: 'not_done', label: 'Work Not Done', desc: 'Project marked complete but work is visibly incomplete' },
+  { id: 'poor_quality', label: 'Poor Quality', desc: 'Work done but quality is unsatisfactory or substandard' },
+  { id: 'partial', label: 'Partially Completed', desc: 'Only part of the project scope has been executed' },
+  { id: 'damaged', label: 'Already Damaged', desc: 'Work completed but structure/asset has already deteriorated' },
+  { id: 'misuse', label: 'Funds Misused', desc: 'Evidence of corruption or misuse of allocated funds' },
 ];
 
 // ─── Citizen Report Modal ──────────────────────────────────────────
@@ -50,16 +51,16 @@ function CitizenReportPanel({
   onSubmit: (report: CitizenReport) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [step, setStep]             = useState<1 | 2 | 3>(1);
-  const [issueType, setIssueType]   = useState('');
-  const [rating, setRating]         = useState(0);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [issueType, setIssueType] = useState('');
+  const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [description, setDescription] = useState('');
-  const [photos, setPhotos]         = useState<{ file: File; preview: string }[]>([]);
+  const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
   const [photoError, setPhotoError] = useState('');
-  const [name, setName]             = useState('');
-  const [phone, setPhone]           = useState('');
-  const [submitted, setSubmitted]   = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
@@ -85,7 +86,7 @@ function CitizenReportPanel({
 
   const canProceedStep1 = issueType !== '';
   const canProceedStep2 = photos.length > 0 && description.trim().length >= 20;
-  const canSubmit       = name.trim().length > 0;
+  const canSubmit = name.trim().length > 0;
 
   const handleSubmit = () => {
     const report: CitizenReport = {
@@ -578,12 +579,12 @@ function ProjectCard({ project, selected, onClick }: {
 function FlowNodeCard({ node, isLast }: { node: FlowNode; isLast: boolean }) {
   const cfg = FLOW_STATUS_CFG[node.status] ?? FLOW_STATUS_CFG['Disbursed'];
   const disbPct = Math.round((node.disbursed / node.allocated) * 100);
-  const utilPct = Math.round((node.utilized  / node.allocated) * 100);
+  const utilPct = Math.round((node.utilized / node.allocated) * 100);
   const nodeColor =
-    node.status === 'Flagged'            ? 'bg-red-500 text-white shadow-red-200' :
-    node.status === 'Pending'            ? 'bg-slate-300 text-slate-600 shadow-slate-100' :
-    node.status === 'Partially Disbursed'? 'bg-blue-500 text-white shadow-blue-200' :
-    'bg-emerald-500 text-white shadow-emerald-200';
+    node.status === 'Flagged' ? 'bg-red-500 text-white shadow-red-200' :
+      node.status === 'Pending' ? 'bg-slate-300 text-slate-600 shadow-slate-100' :
+        node.status === 'Partially Disbursed' ? 'bg-blue-500 text-white shadow-blue-200' :
+          'bg-emerald-500 text-white shadow-emerald-200';
 
   return (
     <div className="relative flex gap-5">
@@ -601,8 +602,8 @@ function FlowNodeCard({ node, isLast }: { node: FlowNode; isLast: boolean }) {
       </div>
       <div className={`flex-1 mb-5 rounded-xl border p-5 transition-all hover:shadow-md
         ${node.status === 'Flagged' ? 'border-red-200 bg-red-50/40'
-        : node.status === 'Pending' ? 'border-slate-200 bg-slate-50/60'
-        : 'border-slate-200 bg-white'}`}
+          : node.status === 'Pending' ? 'border-slate-200 bg-slate-50/60'
+            : 'border-slate-200 bg-white'}`}
       >
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -664,7 +665,7 @@ function FlowNodeCard({ node, isLast }: { node: FlowNode; isLast: boolean }) {
 
 // ─── Main Page ─────────────────────────────────────────────────────
 export default function FlowTracker() {
-  const profileState    = localStorage.getItem('govflow_state')    || 'Maharashtra';
+  const profileState = localStorage.getItem('govflow_state') || 'Maharashtra';
   const profileDistrict = localStorage.getItem('govflow_district') || 'Mumbai';
 
   const { projectId: urlProjectId } = useParams<{ projectId: string }>();
@@ -677,13 +678,43 @@ export default function FlowTracker() {
     }
   }, [urlProjectId]);
 
-  const allProjects = useMemo(
+  const localProjects = useMemo(
     () => getProjectsForLocation(profileState, profileDistrict),
     [profileState, profileDistrict]
   );
 
-  const [search,       setSearch]       = useState('');
-  const [filterDept,   setFilterDept]   = useState('');
+  const [apiProjects, setApiProjects] = useState<ProjectData[] | null>(null);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const res = await projectsApi.list({ state: profileState, district: profileDistrict });
+        setApiProjects(res.data);
+      } catch {
+        setApiProjects(null);
+      }
+    };
+    fetchProjects();
+  }, [profileState, profileDistrict]);
+
+  const allProjects = apiProjects && apiProjects.length > 0
+    ? apiProjects.map(p => ({
+      id: `PRJ-${p.project_id}`,
+      name: p.project_name,
+      department: p.department || '',
+      scheme: p.scheme || '',
+      vendor: p.vendor || '',
+      status: (p.project_status || 'Ongoing') as ProjectStatus,
+      allocated: p.project_budget,
+      utilized: p.utilized_amount,
+      startDate: p.start_date || '',
+      endDate: p.end_date || '',
+      anomalyFlag: p.anomaly_flag,
+    }))
+    : localProjects;
+
+  const [search, setSearch] = useState('');
+  const [filterDept, setFilterDept] = useState('');
   const [filterScheme, setFilterScheme] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
@@ -693,9 +724,9 @@ export default function FlowTracker() {
 
   const filteredProjects = useMemo(() =>
     allProjects
-      .filter(p => !filterDept   || p.department === filterDept)
-      .filter(p => !filterScheme || p.scheme     === filterScheme)
-      .filter(p => !filterStatus || p.status     === filterStatus)
+      .filter(p => !filterDept || p.department === filterDept)
+      .filter(p => !filterScheme || p.scheme === filterScheme)
+      .filter(p => !filterStatus || p.status === filterStatus)
       .filter(p => !search
         || p.name.toLowerCase().includes(search.toLowerCase())
         || p.vendor.toLowerCase().includes(search.toLowerCase())
@@ -705,19 +736,51 @@ export default function FlowTracker() {
   const anyFilter = !!(filterDept || filterScheme || filterStatus || search);
   const clearFilters = () => { setSearch(''); setFilterDept(''); setFilterScheme(''); setFilterStatus(''); };
 
-  const [selectedId,     setSelectedId]     = useState<string | null>(null);
-  const [showReport,     setShowReport]     = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showReport, setShowReport] = useState(false);
   const [submittedReports, setSubmittedReports] = useState<CitizenReport[]>(() => {
     try { return JSON.parse(localStorage.getItem('govflow_reports') || '[]'); }
     catch { return []; }
   });
 
   const selectedProject = allProjects.find(p => p.id === selectedId) ?? null;
-  const flowNodes = useMemo(() =>
+  const [apiFlowNodes, setApiFlowNodes] = useState<FlowNodeData[] | null>(null);
+
+  useEffect(() => {
+    if (!selectedProject) { setApiFlowNodes(null); return; }
+    const idNum = parseInt(selectedProject.id.replace('PRJ-', ''));
+    if (isNaN(idNum)) { setApiFlowNodes(null); return; }
+    const fetchFlow = async () => {
+      try {
+        const res = await projectsApi.getFlow(idNum);
+        setApiFlowNodes(res.data);
+      } catch {
+        setApiFlowNodes(null);
+      }
+    };
+    fetchFlow();
+  }, [selectedProject]);
+
+  const localFlowNodes = useMemo(() =>
     selectedProject ? getFlowForProject(selectedProject, profileState, profileDistrict) : [],
     [selectedProject, profileState, profileDistrict]);
 
-  const anomalyCount  = flowNodes.filter(n => n.status === 'Flagged').length;
+  const flowNodes: FlowNode[] = apiFlowNodes
+    ? apiFlowNodes.map(n => ({
+      level: n.level,
+      levelLabel: n.levelLabel,
+      entity: n.entity,
+      role: n.role,
+      allocated: n.allocated,
+      disbursed: n.disbursed,
+      utilized: n.utilized,
+      date: n.date,
+      status: n.status as any,
+      alert: n.alert || undefined,
+    }))
+    : localFlowNodes;
+
+  const anomalyCount = flowNodes.filter(n => n.status === 'Flagged').length;
   const utilizationPct = selectedProject
     ? Math.round((selectedProject.utilized / selectedProject.allocated) * 100) : 0;
 
@@ -860,8 +923,8 @@ export default function FlowTracker() {
                 <p className="text-sm font-medium text-slate-500">No projects found</p>
                 <button onClick={clearFilters} className="mt-3 text-xs text-blue-500 hover:underline">Clear filters</button>
               </div>
-            ) : filteredProjects.map(project => (
-              <ProjectCard key={project.id} project={project}
+            ) : filteredProjects.map((project, i) => (
+              <ProjectCard key={`${project.id}-${i}`} project={project}
                 selected={selectedId === project.id}
                 onClick={() => { setSelectedId(selectedId === project.id ? null : project.id); setShowReport(false); }}
               />
@@ -878,11 +941,13 @@ export default function FlowTracker() {
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                    {(() => { const sc = PROJ_STATUS_CFG[selectedProject.status]; return (
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${sc.bg} ${sc.text}`}>
-                        <sc.Icon className="w-3 h-3" />{selectedProject.status}
-                      </span>
-                    ); })()}
+                    {(() => {
+                      const sc = PROJ_STATUS_CFG[selectedProject.status]; return (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${sc.bg} ${sc.text}`}>
+                          <sc.Icon className="w-3 h-3" />{selectedProject.status}
+                        </span>
+                      );
+                    })()}
                     {selectedProject.anomalyFlag && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 border border-red-200 rounded-full text-xs font-bold">
                         <AlertTriangle className="w-3 h-3" />Anomaly
@@ -1048,7 +1113,7 @@ export default function FlowTracker() {
               Choose any project from the list to trace its complete budget flow — from Union Budget to the contractor.
             </p>
             <div className="mt-6 flex items-center gap-2 text-xs text-slate-400 flex-wrap justify-center">
-              {['Union Budget','Ministry','State','District','Ward','Contractor'].map((s, i, a) => (
+              {['Union Budget', 'Ministry', 'State', 'District', 'Ward', 'Contractor'].map((s, i, a) => (
                 <span key={s} className="flex items-center gap-2">
                   <span className="px-2 py-1 bg-slate-100 rounded-md">{s}</span>
                   {i < a.length - 1 && <ChevronRight className="w-3.5 h-3.5 shrink-0" />}

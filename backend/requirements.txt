@@ -1,6 +1,5 @@
 fastapi
 uvicorn[standard]
-firebase-admin
 python-dotenv
 pydantic
 pandas
@@ -9,5 +8,7 @@ scikit-learn
 python-multipart
 httpx
 sqlalchemy
-psycopg2-binary
-alembic
+python-jose[cryptography]
+passlib[bcrypt]
+joblib
+shap
