@@ -255,8 +255,219 @@
 //     </div>
 //   );
 // }
+// import { useState } from 'react';
+// import { 
+//   User, Mail, Phone, Building, CreditCard, 
+//   MapPin, Camera, Save, ShieldCheck, CheckCircle2
+// } from 'lucide-react';
+// import { ALL_STATES, getDistricts } from '../data/indiaData';
 
+// export function getProfileLocation(): { state: string; district: string } {
+//   return {
+//     state: localStorage.getItem('govflow_state') || 'Maharashtra',
+//     district: localStorage.getItem('govflow_district') || 'Mumbai',
+//   };
+// }
 
+// export default function Profile() {
+//   const [isSaving, setIsSaving] = useState(false);
+//   const [saved, setSaved] = useState(false);
+//   const [formData, setFormData] = useState({
+//     firstName: 'Rajesh',
+//     lastName: 'Kumar',
+//     email: 'rajesh.kumar@gov.in',
+//     phone: '+91 98765 43210',
+//     aadhaar: 'XXXX XXXX 1234',
+//     department: 'Ministry of Finance',
+//     designation: 'Senior Nodal Officer',
+//     employeeId: 'GOV-FIN-2049',
+//     address: 'Block C, Government Quarters',
+//     state: localStorage.getItem('govflow_state') || 'Maharashtra',
+//     district: localStorage.getItem('govflow_district') || 'Mumbai',
+//     pincode: '400001',
+//   });
+
+//   const districts = getDistricts(formData.state);
+
+//   const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+//     const newState = e.target.value;
+//     const newDistricts = getDistricts(newState);
+//     setFormData(prev => ({ ...prev, state: newState, district: newDistricts[0] || '' }));
+//   };
+
+//   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+//     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+//   };
+
+//   const handleSubmit = (e: React.FormEvent) => {
+//     e.preventDefault();
+//     setIsSaving(true);
+//     setTimeout(() => {
+//       localStorage.setItem('govflow_state', formData.state);
+//       localStorage.setItem('govflow_district', formData.district);
+//       setIsSaving(false);
+//       setSaved(true);
+//       setTimeout(() => setSaved(false), 3000);
+//     }, 800);
+//   };
+
+//   return (
+//     <div className="max-w-5xl mx-auto space-y-6">
+//       <div>
+//         <h2 className="text-2xl font-bold text-slate-800">User Profile</h2>
+//         <p className="text-slate-500">Manage your official identity, contact details, and location preferences.</p>
+//       </div>
+
+//       <form onSubmit={handleSubmit} className="space-y-6">
+//         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-8 items-start">
+//           <div className="flex flex-col items-center gap-4">
+//             <div className="relative group cursor-pointer">
+//               <div className="w-32 h-32 rounded-full bg-blue-100 border-4 border-white shadow-md flex items-center justify-center">
+//                 <User className="w-16 h-16 text-blue-500" />
+//               </div>
+//               <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+//                 <Camera className="w-8 h-8 text-white" />
+//               </div>
+//             </div>
+//             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+//               <ShieldCheck className="w-3.5 h-3.5" />Verified Official
+//             </span>
+//           </div>
+
+//           <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">First Name</label>
+//               <input type="text" name="firstName" value={formData.firstName} onChange={handleChange}
+//                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm" />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">Last Name</label>
+//               <input type="text" name="lastName" value={formData.lastName} onChange={handleChange}
+//                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm" />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">Official Email</label>
+//               <div className="relative">
+//                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+//                 <input type="email" name="email" value={formData.email} disabled
+//                   className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed text-sm" />
+//               </div>
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+//               <div className="relative">
+//                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+//                 <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
+//                   className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm" />
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+
+//         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+//           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+//             <div className="flex items-center gap-2 border-b border-slate-100 pb-4">
+//               <Building className="w-5 h-5 text-blue-600" />
+//               <h3 className="text-lg font-semibold text-slate-800">Official Details</h3>
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">Department / Ministry</label>
+//               <input type="text" value={formData.department} disabled
+//                 className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed text-sm" />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">Designation</label>
+//               <input type="text" name="designation" value={formData.designation} onChange={handleChange}
+//                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm" />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">Employee ID</label>
+//               <input type="text" value={formData.employeeId} disabled
+//                 className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed text-sm" />
+//             </div>
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">Aadhaar Number</label>
+//               <div className="relative">
+//                 <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+//                 <input type="text" name="aadhaar" value={formData.aadhaar} onChange={handleChange}
+//                   className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm"
+//                   placeholder="XXXX XXXX XXXX" />
+//               </div>
+//             </div>
+//           </div>
+
+//           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+//             <div className="flex items-center gap-2 border-b border-slate-100 pb-4">
+//               <MapPin className="w-5 h-5 text-blue-600" />
+//               <div>
+//                 <h3 className="text-lg font-semibold text-slate-800">Location & Address</h3>
+//                 <p className="text-xs text-blue-500 mt-0.5">Sets your default Dashboard view</p>
+//               </div>
+//             </div>
+
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">Residential Address</label>
+//               <textarea name="address" value={formData.address}
+//                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+//                 rows={2}
+//                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm resize-none" />
+//             </div>
+
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">
+//                 State / UT
+//                 <span className="ml-2 text-xs text-blue-500 font-normal">↗ affects Dashboard</span>
+//               </label>
+//               <select name="state" value={formData.state} onChange={handleStateChange}
+//                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm text-slate-700">
+//                 {ALL_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+//               </select>
+//             </div>
+
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">
+//                 District / City
+//                 <span className="ml-2 text-xs text-blue-500 font-normal">↗ affects Dashboard</span>
+//               </label>
+//               <select name="district" value={formData.district} onChange={handleChange}
+//                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm text-slate-700">
+//                 {districts.map(d => <option key={d} value={d}>{d}</option>)}
+//               </select>
+//             </div>
+
+//             <div>
+//               <label className="block text-sm font-medium text-slate-700 mb-1">Pincode</label>
+//               <input type="text" name="pincode" value={formData.pincode} onChange={handleChange}
+//                 className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm" />
+//             </div>
+
+//             <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+//               <MapPin className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+//               <p className="text-xs text-blue-700 leading-relaxed">
+//                 Your <strong>State</strong> and <strong>District</strong> set the default budget view on your Dashboard. You can always explore any other region from there too.
+//               </p>
+//             </div>
+//           </div>
+//         </div>
+
+//         <div className="flex justify-end items-center gap-4 pt-4">
+//           {saved && (
+//             <span className="flex items-center gap-2 text-sm text-emerald-600 font-medium">
+//               <CheckCircle2 className="w-4 h-4" /> Location preferences saved!
+//             </span>
+//           )}
+//           <button type="submit" disabled={isSaving}
+//             className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 transition-colors">
+//             {isSaving
+//               ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+//               : <><Save className="w-4 h-4" />Save Changes</>
+//             }
+//           </button>
+//         </div>
+//       </form>
+//     </div>
+//   );
+// }
 import { useMemo, useState } from 'react';
 import { User, Mail, Phone, Camera, Save, Building, MapPin, AlertTriangle, ClipboardList } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';

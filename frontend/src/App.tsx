@@ -1,143 +1,49 @@
-// // import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-// // import Layout from './components/Layout';
-// // import Dashboard from './pages/Dashboard';
-// // import FlowTracker from './pages/FlowTracker';
-// // import Anomalies from './pages/Anomalies';
-// // import Auth from './pages/Auth';
-// // import Profile from './pages/Profile';
-
-// // // A simple protected route wrapper
-// // function ProtectedRoute({ children }: { children: React.ReactNode }) {
-// //   const isAuthenticated = localStorage.getItem('govflow_auth') === 'true';
-  
-// //   if (!isAuthenticated) {
-// //     return <Navigate to="/login" replace />;
-// //   }
-
-// //   return <>{children}</>;
-// // }
-
-// // function App() {
-// //   return (
-// //     <Router>
-// //       <Routes>
-// //         {/* Public Route */}
-// //         <Route path="/login" element={<Auth />} />
-
-// //         {/* Protected Routes */}
-// //         <Route 
-// //           path="/" 
-// //           element={
-// //             <ProtectedRoute>
-// //               <Layout />
-// //             </ProtectedRoute>
-// //           }
-// //         >
-// //           <Route index element={<Dashboard />} />
-// //           <Route path="flow" element={<FlowTracker />} />
-// //           <Route path="anomalies" element={<Anomalies />} />
-// //           <Route path="profile" element={<Profile />} />
-// //           <Route path="reports" element={<div className="p-8 text-slate-500">Reports Module (Coming Soon)</div>} />
-// //           <Route path="settings" element={<div className="p-8 text-slate-500">Settings Module (Coming Soon)</div>} />
-// //         </Route>
-// //       </Routes>
-// //     </Router>
-// //   );
-// // }
-
-// // export default App;
-
-// import { BrowserRouter, Routes, Route } from "react-router-dom";
-// import Auth from "./pages/Auth";
-// import AdminDashboard from "./pages/AdminDashboard";
-// import CitizenDashboard from "./pages/CitizenDashboard";
-// import ProtectedRoute from "./components/ProtectedRoutes";
-
-// function App() {
-//   return (
-//     <BrowserRouter>
-//       <Routes>
-
-//         <Route path="/login" element={<Auth />} />
-
-//         <Route
-//           path="/admin-dashboard"
-//           element={
-//             <ProtectedRoute role="admin">
-//               <AdminDashboard />
-//             </ProtectedRoute>
-//           }
-//         />
-
-//         <Route
-//           path="/citizen-dashboard"
-//           element={
-//             <ProtectedRoute role="citizen">
-//               <CitizenDashboard />
-//             </ProtectedRoute>
-//           }
-//         />
-
-//       </Routes>
-//     </BrowserRouter>
-//   );
-// }
-
-// export default App;
-
-
-
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Auth from "./pages/Auth";
-import AdminDashboard from "./pages/AdminDashboard";
-import CitizenDashboard from "./pages/CitizenDashboard";
-import ProtectedRoute from "./components/ProtectedRoutes";
-// import { BrowserRouter as Router, Navigate } from 'react-router-dom';
-// import Layout from './components/Layout';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
-import FlowTracker from './pages/FlowTracker';
+import FlowTracker from './pages/FlowTracker';``
 import Anomalies from './pages/Anomalies';
+import Reports from './pages/reports';
 import Profile from './pages/Profile';
+import Auth from './pages/Auth';
+
+// A simple protected route wrapper
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = localStorage.getItem('govflow_auth') === 'true';
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+}
 
 function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
-
-        {/* Default route */}
-        <Route path="/" element={<Auth />} />
-
+        {/* Public Route */}
         <Route path="/login" element={<Auth />} />
 
-        <Route
-          path="/admin-dashboard"
+        {/* Protected Routes */}
+        <Route 
+          path="/" 
           element={
-            <ProtectedRoute role="admin">
-              {/* <AdminDashboard /> */}
-              <Dashboard/>
+            <ProtectedRoute>
+              <Layout />
             </ProtectedRoute>
           }
-        />
-
-        <Route
-          path="/citizen-dashboard"
-          element={
-            <ProtectedRoute role="citizen">
-              {/* <CitizenDashboard /> */}
-              <Dashboard/>
-            </ProtectedRoute>
-          }
-        />
-        <Route index element={<Dashboard />} />
+        >
+          <Route index element={<Dashboard />} />
           <Route path="flow" element={<FlowTracker />} />
+          <Route path="flow/:projectId" element={<FlowTracker />} />
           <Route path="anomalies" element={<Anomalies />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="reports" element={<div className="p-8 text-slate-500">Reports Module (Coming Soon)</div>} />
+          <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<div className="p-8 text-slate-500">Settings Module (Coming Soon)</div>} />
-
-
+        </Route>
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 

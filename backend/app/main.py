@@ -31,16 +31,19 @@
 
 
 from fastapi import FastAPI
+from app.api.predict import router as predict_router
 from app.api.routes import projects
 from sqlalchemy import text
 from app.core.database import engine
 from app.core.database import Base, engine
+from app.api.predict import router
 # from app.models import project
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
-app.include_router(projects.router)
+# app.include_router(projects.router)
+app.include_router(predict_router)
 
 
 
@@ -52,3 +55,8 @@ def test_db():
         return {"status": "Database connected successfully"}
     except Exception as e:
         return {"error": str(e)}
+
+@router.post("/predict")
+def get_prediction(data: list):
+    result = predict(data)
+    return result
