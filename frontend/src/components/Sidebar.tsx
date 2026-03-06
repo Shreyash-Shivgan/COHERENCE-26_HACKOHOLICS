@@ -6,7 +6,8 @@ import {
   FileText, 
   Settings,
   ShieldAlert,
-  UserCircle
+  UserCircle,
+  ArrowRightLeft
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -14,6 +15,7 @@ const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'Fund Flow Tracker', path: '/flow', icon: Network },
   { name: 'Anomaly Detection', path: '/anomalies', icon: AlertTriangle },
+  { name: 'Reallocation Insights', path: '/reallocation-insights', icon: ArrowRightLeft, adminOnly: true },
   { name: 'Reports', path: '/reports', icon: FileText },
   { name: 'Profile', path: '/profile', icon: UserCircle },
   { name: 'Settings', path: '/settings', icon: Settings },
@@ -21,6 +23,8 @@ const navItems = [
 
 export default function Sidebar() {
   const location = useLocation();
+  const role = localStorage.getItem('govflow_role');
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || role === 'admin');
 
   return (
     <div className="w-64 bg-slate-900 text-white flex flex-col h-screen fixed left-0 top-0 border-r border-slate-800">
@@ -33,7 +37,7 @@ export default function Sidebar() {
       </div>
       
       <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link
