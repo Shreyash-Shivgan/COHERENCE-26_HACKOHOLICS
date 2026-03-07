@@ -6,6 +6,8 @@ Uses the same deterministic seeded-random logic as the frontend's indiaData.ts s
 from sqlalchemy.orm import Session
 from app.models.project_model import Project
 from app.models.anomaly import Anomaly
+from app.models.budget_model import Budget
+from app.models.complaint_model import Complaint
 import os
 import csv
 from datetime import datetime
@@ -161,6 +163,8 @@ def _seed_from_csv(db: Session, csv_path: str):
 
     project_counter = 0
     anomaly_counter = 0
+    complaint_counter = 0
+    budgets_dict = {}
     
     with open(csv_path, newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
@@ -186,6 +190,13 @@ def _seed_from_csv(db: Session, csv_path: str):
             
             spent_str = row.get("spent_amount", "0")
             spent = float(spent_str) if spent_str else 0.0
+            
+            # Aggregate budgets dynamically
+            b_key = (dept, state, district)
+            if b_key not in budgets_dict:
+                budgets_dict[b_key] = {"alloc": 0.0, "spent": 0.0}
+            budgets_dict[b_key]["alloc"] += p_budget
+            budgets_dict[b_key]["spent"] += spent
             
             start_date = _convert_date_format(row.get("project_start_date", ""))
             
@@ -226,6 +237,31 @@ def _seed_from_csv(db: Session, csv_path: str):
             )
             db.add(proj)
             db.flush() # flush to get project_id
+            
+            # --- SEED COMPLAINTS ---
+            comp_str = row.get("citizen_complaints", "0")
+            comp_val = int(float(comp_str)) if comp_str else 0
+            # Cap the maximum complaints generated to 3 per project so database seeding is fast
+            seed_complaints = min(comp_val, 3) 
+            for c_idx in range(seed_complaints):
+                complaint_counter += 1
+                comp = Complaint(
+                    project_id=proj.project_id,
+                    project_name=proj.project_name,
+                    department=proj.department,
+                    scheme=proj.scheme,
+                    vendor=proj.vendor,
+                    issue_type="Poor Quality" if c_idx % 2 == 0 else "Delayed Start",
+                    rating=int(float(row.get("citizen_rating", "3.0"))),
+                    description=f"Citizen observation regarding {proj.project_name}. Please inspect the physical site.",
+                    photo_count=0,
+                    photos="[]",
+                    reporter_name=f"Citizen_{proj.project_id}_{c_idx}",
+                    reporter_phone="9999999999",
+                    timestamp="2024-10-24T12:00:00Z",
+                    review_status="Under Review"
+                )
+                db.add(comp)
             
             project_counter += 1
             
@@ -273,8 +309,20 @@ def _seed_from_csv(db: Session, csv_path: str):
                 )
                 db.add(anomaly)
 
+    # Insert aggregated budgets
+    for (m_dept, m_state, m_dist), vals in budgets_dict.items():
+        b = Budget(
+            ministry=m_dept,
+            state=m_state,
+            district=m_dist,
+            allocated_amount=vals["alloc"],
+            spent_amount=vals["spent"],
+            year=2024
+        )
+        db.add(b)
+
     db.commit()
-    print(f"✅ Seeded {project_counter} projects and {anomaly_counter} anomalies from CSV.")
+    print(f"✅ Seeded {project_counter} projects, {anomaly_counter} anomalies, {len(budgets_dict)} district budgets, and {complaint_counter} complaints.")
 
 
 def _do_seed(db: Session):
