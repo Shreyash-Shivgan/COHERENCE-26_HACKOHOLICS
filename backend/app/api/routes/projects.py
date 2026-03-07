@@ -20,4 +20,33 @@ def create_project(data: ProjectCreate, db: Session = Depends(get_db)):
     db.add(proj)
     db.commit()
     db.refresh(proj)
+    
+    # --- Location-Based Notification Logic ---
+    if proj.district:
+        from app.models.user_profile import UserProfile
+        from app.models.notification import Notification
+        
+        # Format budget for display (e.g., ₹50,00,000)
+        budget_str = f"₹{proj.project_budget:,.0f}" if proj.project_budget else "an unspecified amount"
+        
+        # Find users in this district
+        users_in_district = db.query(UserProfile).filter(
+            UserProfile.district.ilike(f"%{proj.district}%")
+        ).all()
+        
+        # Create notifications
+        notifications = []
+        for user in users_in_district:
+            notif = Notification(
+                user_email=user.user_email,
+                title="New Local Project Allocated",
+                message=f"A new project '{proj.project_name}' has been allocated to {proj.district} with a budget of {budget_str}. Department: {proj.department or 'N/A'}.",
+                is_read=False
+            )
+            notifications.append(notif)
+            
+        if notifications:
+            db.bulk_save_objects(notifications)
+            db.commit()
+            
     return proj

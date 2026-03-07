@@ -761,6 +761,102 @@ function AadhaarVerificationForm() {
   );
 }
 
+// ─── Location Preferences Component ──────────────────────────
+function LocationPreferencesForm() {
+  const [state, setState] = useState(localStorage.getItem('govflow_state') || '');
+  const [district, setDistrict] = useState(localStorage.getItem('govflow_district') || '');
+  const [pincode, setPincode] = useState(localStorage.getItem('govflow_pincode') || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSaveLocation = async () => {
+    setIsSaving(true);
+    setSaved(false);
+
+    // Save to local storage for immediate UI feedback
+    localStorage.setItem('govflow_state', state);
+    localStorage.setItem('govflow_district', district);
+    localStorage.setItem('govflow_pincode', pincode);
+
+    // Get user email
+    const profile = (() => { try { return JSON.parse(localStorage.getItem('govflow_user_profile') || '{}'); } catch { return {}; } })();
+    const email = profile.email || 'citizen@govflow.in';
+
+    try {
+      await fetch('http://localhost:8000/api/profile/location', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_email: email,
+          state,
+          district,
+          pincode
+        }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      console.error('Failed to save location', e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">State / UT</label>
+          <input
+            type="text"
+            value={state}
+            onChange={(e) => setState(e.target.value)}
+            placeholder="e.g. Maharashtra"
+            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">District / City</label>
+          <input
+            type="text"
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+            placeholder="e.g. Mumbai"
+            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Pincode</label>
+          <input
+            type="text"
+            value={pincode}
+            onChange={(e) => setPincode(e.target.value)}
+            placeholder="e.g. 400001"
+            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent bg-slate-50 focus:bg-white transition-colors text-sm"
+          />
+        </div>
+      </div>
+      <div className="flex justify-end items-center gap-4 pt-2">
+        {saved && (
+          <span className="flex items-center gap-2 text-sm text-emerald-600 font-medium">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg> Location saved!
+          </span>
+        )}
+        <button type="button" onClick={handleSaveLocation} disabled={isSaving}
+          className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 transition-colors">
+          {isSaving ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <><Save className="w-4 h-4" />Save Location Setup</>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Profile() {
   const [isSaving, setIsSaving] = useState(false);
   const storedRole = localStorage.getItem('govflow_role') || 'citizen';
@@ -908,14 +1004,13 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* ─── Aadhaar Verification Section ─── */}
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
                 <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-blue-600" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2" /><circle cx="8" cy="12" r="2" /><path d="M14 10h4M14 14h4" /></svg>
                 <h3 className="text-lg font-semibold text-slate-800">Aadhaar Verification</h3>
               </div>
-              {localStorage.getItem('aadhaar_verified') === 'true' && (
+              {localStorage.getItem('govflow_aadhaar_verified') === 'true' && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
                   <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                   Verified
@@ -928,6 +1023,18 @@ export default function Profile() {
             </p>
 
             <AadhaarVerificationForm />
+          </div>
+
+          {/* ─── Location Preferences Section ─── */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-4">
+              <MapPin className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-slate-800">Location Preferences for Alerts</h3>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed mb-4">
+              Save your state and district to receive real-time notifications when new projects are allocated or anomalies are flagged in your area.
+            </p>
+            <LocationPreferencesForm />
           </div>
 
           <div className="flex justify-end pt-4">
@@ -1137,6 +1244,18 @@ export default function Profile() {
               </select>
             </div>
           </div>
+        </div>
+
+        {/* ─── Location Preferences Section ─── */}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-4">
+            <MapPin className="w-5 h-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-slate-800">Location Preferences for Alerts</h3>
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed mb-4">
+            Save your state and district to receive real-time notifications when new projects are allocated in your area.
+          </p>
+          <LocationPreferencesForm />
         </div>
 
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
