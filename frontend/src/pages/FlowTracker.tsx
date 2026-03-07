@@ -50,14 +50,18 @@ function CitizenReportPanel({
   onSubmit: (report: CitizenReport) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  // Check if Aadhaar is verified (done on Profile page, persisted in localStorage)
+  const alreadyVerified = localStorage.getItem('govflow_aadhaar_verified') === 'true';
+
+  const [step, setStep] = useState<0 | 1 | 2 | 3>(alreadyVerified ? 1 : 0);
   const [issueType, setIssueType] = useState('');
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
   const [photoError, setPhotoError] = useState('');
-  const [name, setName] = useState('');
+  const [name, setName] = useState(localStorage.getItem('aadhaar_name') || '');
   const [phone, setPhone] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
@@ -198,15 +202,15 @@ function CitizenReportPanel({
         </div>
 
         {/* Step indicator */}
-        <div className="flex items-center gap-2 mt-4">
-          {[1, 2, 3].map(s => (
-            <div key={s} className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-1.5 mt-4">
+          {[0, 1, 2, 3].map(s => (
+            <div key={s} className="flex items-center gap-1.5 flex-1">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all
                 ${step >= s ? 'bg-white text-orange-600' : 'bg-white/20 text-white/60'}`}>
-                {step > s ? '✓' : s}
+                {step > s ? '✓' : s + 1}
               </div>
-              <span className={`text-xs font-medium transition-colors ${step >= s ? 'text-white' : 'text-white/50'}`}>
-                {s === 1 ? 'Issue Type' : s === 2 ? 'Evidence' : 'Your Info'}
+              <span className={`text-[10px] font-medium transition-colors ${step >= s ? 'text-white' : 'text-white/50'}`}>
+                {s === 0 ? 'Aadhaar' : s === 1 ? 'Issue' : s === 2 ? 'Evidence' : 'Info'}
               </span>
               {s < 3 && <div className={`flex-1 h-px ${step > s ? 'bg-white/60' : 'bg-white/20'}`} />}
             </div>
@@ -222,6 +226,33 @@ function CitizenReportPanel({
           Marked Completed
         </span>
       </div>
+
+      {/* ── STEP 0: Identity Gate — redirect to Profile for Aadhaar verification ── */}
+      {step === 0 && (
+        <div className="p-6 space-y-5 text-center">
+          <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-8 h-8 text-orange-500" />
+          </div>
+          <div>
+            <h4 className="text-base font-bold text-slate-800 mb-1">Identity Verification Required</h4>
+            <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
+              To prevent misuse, citizens must verify their identity via Aadhaar before submitting complaints or reviews.
+            </p>
+          </div>
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+            <p className="text-xs text-blue-700 leading-relaxed">
+              Go to your <strong>Profile</strong> page to complete Aadhaar verification. Once verified, you can submit unlimited reports.
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.href = '/profile'}
+            className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm shadow-blue-600/20"
+          >
+            <Users className="w-4 h-4" />
+            Go to Profile → Verify Aadhaar
+          </button>
+        </div>
+      )}
 
       {/* ── STEP 1: Issue Type ── */}
       {step === 1 && (

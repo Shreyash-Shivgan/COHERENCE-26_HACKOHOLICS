@@ -6,7 +6,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 # Load .env for local development; Railway sets env vars directly
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:shreyash@localhost:5432/hackoholics_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:shreyash@localhost:5432/postgres")
 
 # Railway sometimes uses postgres:// instead of postgresql://
 if DATABASE_URL.startswith("postgres://"):

@@ -16,18 +16,29 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Mocking an API call to Firebase/FastAPI
     setTimeout(() => {
       setIsLoading(false);
-      // Set a mock auth token and role in local storage
       localStorage.setItem('govflow_auth', 'true');
       localStorage.setItem('govflow_role', role);
-      localStorage.setItem('govflow_user_profile', JSON.stringify({
-        fullName: fullName.trim(),
-        email: email.trim(),
-        department: department.trim(),
-        role
-      }));
+
+      if (isLogin) {
+        // On login: regenerate the profile based on the email provided to simulate fetching user data
+        const derivedName = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        localStorage.setItem('govflow_user_profile', JSON.stringify({
+          fullName: derivedName,
+          email: email.trim(),
+          department: '',
+          role
+        }));
+      } else {
+        // On signup: save the entered full name
+        localStorage.setItem('govflow_user_profile', JSON.stringify({
+          fullName: fullName.trim(),
+          email: email.trim(),
+          department: department.trim(),
+          role
+        }));
+      }
       navigate('/');
     }, 1000);
   };
@@ -79,8 +90,8 @@ export default function Auth() {
                   type="button"
                   onClick={() => setRole('citizen')}
                   className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${role === 'citizen'
-                      ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                 >
                   <Users className="w-4 h-4" />
@@ -90,8 +101,8 @@ export default function Auth() {
                   type="button"
                   onClick={() => setRole('admin')}
                   className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${role === 'admin'
-                      ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                 >
                   <ShieldAlert className="w-4 h-4" />
@@ -100,26 +111,26 @@ export default function Auth() {
               </div>
             </div>
 
-            {/* Full Name — always shown so we always have the user's name */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-slate-400" />
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent sm:text-sm bg-slate-50 focus:bg-white transition-colors"
-                  placeholder="e.g. Rajesh Kumar"
-                />
-              </div>
-            </div>
-
             {!isLogin && (
               <>
+                {/* Full Name — only during signup */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent sm:text-sm bg-slate-50 focus:bg-white transition-colors"
+                      placeholder="e.g. Rajesh Kumar"
+                    />
+                  </div>
+                </div>
+
                 {/* Only show Department if the user is a Government Admin */}
                 {role === 'admin' && (
                   <div className="animate-in fade-in slide-in-from-top-2 duration-300">

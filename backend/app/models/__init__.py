@@ -2,5 +2,6 @@ from app.models.project_model import Project
 from app.models.anomaly import Anomaly
 from app.models.budget_model import Budget
 from app.models.complaint_model import Complaint
+from app.models.aadhaar_verification import AadhaarVerification
 
-__all__ = ["Project", "Anomaly", "Budget", "Complaint"]
+__all__ = ["Project", "Anomaly", "Budget", "Complaint", "AadhaarVerification"]

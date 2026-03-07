@@ -38,8 +38,14 @@ app = FastAPI(
 import os
 cors_origins = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:5173,http://localhost:3000"
+    "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:3000"
 ).split(",")
+
+# Ensure 5174, 5175, 5176 are present, since Vite rotates ports
+for port in ["5173", "5174", "5175", "5176"]:
+    origin = f"http://localhost:{port}"
+    if origin not in cors_origins:
+        cors_origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,6 +58,11 @@ app.add_middleware(
 # Mount all API routes
 app.include_router(api_router, prefix="/api")
 app.include_router(predict_router, prefix="/api/predict")
+
+# Mount uploads as static files
+from fastapi.staticfiles import StaticFiles
+from app.core.config import AADHAAR_UPLOAD_DIR
+app.mount("/uploads", StaticFiles(directory=os.path.dirname(AADHAAR_UPLOAD_DIR)), name="uploads")
 
 
 @app.get("/")

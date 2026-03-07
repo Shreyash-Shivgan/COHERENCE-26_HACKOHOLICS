@@ -15,6 +15,10 @@ export default function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem('govflow_auth');
+    localStorage.removeItem('govflow_role');
+    localStorage.removeItem('govflow_user_profile');
+    localStorage.removeItem('govflow_aadhaar_verified');
+    localStorage.removeItem('aadhaar_name');
     navigate('/login');
   };
 

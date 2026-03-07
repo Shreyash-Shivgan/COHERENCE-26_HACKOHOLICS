@@ -33,7 +33,7 @@ def submit_complaint(data: ComplaintCreate, db: Session = Depends(get_db)):
 
 @router.get("", response_model=List[ComplaintResponse])
 def list_complaints(db: Session = Depends(get_db)):
-    complaints = db.query(Complaint).order_by(Complaint.id.desc()).all()
+    complaints = db.query(Complaint).order_by(Complaint.id.desc()).limit(20).all()
     results = []
     for c in complaints:
         c_dict = c.__dict__.copy()
