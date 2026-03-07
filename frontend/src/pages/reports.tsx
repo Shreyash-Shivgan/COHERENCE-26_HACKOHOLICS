@@ -21,6 +21,7 @@ interface CitizenReport {
   rating: number;
   description: string;
   photoCount: number;
+  photos: string[];
   reporterName: string;
   reporterPhone: string;
   timestamp: string;
@@ -28,18 +29,18 @@ interface CitizenReport {
 }
 
 const ISSUE_LABELS: Record<string, string> = {
-  not_done:     'Work Not Done',
+  not_done: 'Work Not Done',
   poor_quality: 'Poor Quality',
-  partial:      'Partially Completed',
-  damaged:      'Already Damaged',
-  misuse:       'Funds Misused',
+  partial: 'Partially Completed',
+  damaged: 'Already Damaged',
+  misuse: 'Funds Misused',
 };
 
 const REVIEW_STATUS_CFG = {
-  'Under Review':  { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500', Icon: Clock },
-  'Acknowledged':  { bg: 'bg-blue-50',   text: 'text-blue-700',   border: 'border-blue-200',   dot: 'bg-blue-500',   Icon: AlertCircle },
-  'Resolved':      { bg: 'bg-emerald-50',text: 'text-emerald-700',border: 'border-emerald-200',dot: 'bg-emerald-500',Icon: CheckCircle2 },
-  'Rejected':      { bg: 'bg-red-50',    text: 'text-red-700',    border: 'border-red-200',    dot: 'bg-red-500',    Icon: XCircle },
+  'Under Review': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500', Icon: Clock },
+  'Acknowledged': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500', Icon: AlertCircle },
+  'Resolved': { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500', Icon: CheckCircle2 },
+  'Rejected': { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', dot: 'bg-red-500', Icon: XCircle },
 };
 
 // ─── Report Card ──────────────────────────────────────────────────
@@ -113,6 +114,24 @@ function ReportCard({ report, onViewProject, onDelete }: {
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Your Description</p>
             <p className="text-sm text-slate-700 leading-relaxed">{report.description}</p>
           </div>
+
+          {/* Photo thumbnails */}
+          {report.photos && report.photos.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Attached Photos ({report.photos.length})</p>
+              <div className="flex gap-2 flex-wrap">
+                {report.photos.map((src, i) => (
+                  <img
+                    key={i}
+                    src={src}
+                    alt={`Evidence photo ${i + 1}`}
+                    className="w-20 h-20 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => window.open(src, '_blank')}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-slate-50 rounded-xl p-3">
@@ -198,43 +217,81 @@ export default function Reports() {
   const readReports = (): CitizenReport[] => {
     try {
       const raw = JSON.parse(localStorage.getItem('govflow_reports') || '[]');
-      // Migrate old reports that may be missing new fields
       return raw.map((r: any, i: number) => ({
         id: r.id || `RPT-${Date.now()}-${i}`,
-        projectId: r.projectId || '',
-        projectName: r.projectName || 'Unknown Project',
+        projectId: r.projectId || r.project_id?.toString() || '',
+        projectName: r.projectName || r.project_name || 'Unknown Project',
         department: r.department || '',
         scheme: r.scheme || '',
         vendor: r.vendor || '',
-        projectStatus: r.projectStatus || '',
-        issueType: r.issueType || '',
+        projectStatus: r.projectStatus || r.project_status || '',
+        issueType: r.issueType || r.issue_type || '',
         rating: r.rating || 0,
         description: r.description || '',
-        photoCount: r.photoCount || 0,
-        reporterName: r.reporterName || '',
-        reporterPhone: r.reporterPhone || '',
+        photoCount: r.photoCount || r.photo_count || 0,
+        photos: r.photos || [],
+        reporterName: r.reporterName || r.reporter_name || '',
+        reporterPhone: r.reporterPhone || r.reporter_phone || '',
         timestamp: r.timestamp || new Date().toISOString(),
-        reviewStatus: r.reviewStatus || 'Under Review',
+        reviewStatus: r.reviewStatus || r.review_status || 'Under Review',
       }));
     } catch { return []; }
   };
 
   const [reports, setReports] = useState<CitizenReport[]>(readReports);
 
-  // Re-read every time this page mounts (user navigates back from FlowTracker)
+  // Re-read localStorage + fetch from backend on mount
   useEffect(() => {
-    setReports(readReports());
+    const localReports = readReports();
+
+    // Also fetch complaints from backend for admin view
+    fetch('http://localhost:8000/api/citizens')
+      .then(res => res.json())
+      .then((apiReports: any[]) => {
+        const backendReports: CitizenReport[] = apiReports.map((r: any, i: number) => ({
+          id: r.id?.toString() || `API-${i}`,
+          projectId: r.project_id?.toString() || '',
+          projectName: r.project_name || '',
+          department: r.department || '',
+          scheme: r.scheme || '',
+          vendor: r.vendor || '',
+          projectStatus: '',
+          issueType: r.issue_type || '',
+          rating: r.rating || 0,
+          description: r.description || '',
+          photoCount: r.photo_count || 0,
+          photos: r.photos || [],
+          reporterName: r.reporter_name || '',
+          reporterPhone: r.reporter_phone || '',
+          timestamp: r.timestamp || new Date().toISOString(),
+          reviewStatus: r.review_status || 'Under Review',
+        }));
+
+        // Merge: combine backend entries and local entries, avoiding duplicates
+        const ids = new Set(localReports.map(r => r.id));
+        const merged = [...localReports];
+        for (const br of backendReports) {
+          if (!ids.has(br.id)) {
+            merged.push(br);
+          }
+        }
+        setReports(merged);
+      })
+      .catch(() => {
+        // If backend is down, just use localStorage
+        setReports(localReports);
+      });
   }, []);
 
-  const [search,          setSearch]          = useState('');
-  const [filterIssue,     setFilterIssue]     = useState('');
-  const [filterStatus,    setFilterStatus]    = useState('');
+  const [search, setSearch] = useState('');
+  const [filterIssue, setFilterIssue] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   const filtered = useMemo(() =>
     [...reports]
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .filter(r => !filterIssue  || r.issueType     === filterIssue)
-      .filter(r => !filterStatus || r.reviewStatus  === filterStatus)
+      .filter(r => !filterIssue || r.issueType === filterIssue)
+      .filter(r => !filterStatus || r.reviewStatus === filterStatus)
       .filter(r => !search
         || r.projectName.toLowerCase().includes(search.toLowerCase())
         || r.description.toLowerCase().includes(search.toLowerCase())
@@ -255,9 +312,9 @@ export default function Reports() {
   };
 
   // Summary counts
-  const underReview  = reports.filter(r => r.reviewStatus === 'Under Review').length;
+  const underReview = reports.filter(r => r.reviewStatus === 'Under Review').length;
   const acknowledged = reports.filter(r => r.reviewStatus === 'Acknowledged').length;
-  const resolved     = reports.filter(r => r.reviewStatus === 'Resolved').length;
+  const resolved = reports.filter(r => r.reviewStatus === 'Resolved').length;
 
   if (reports.length === 0) {
     return (
@@ -309,10 +366,10 @@ export default function Reports() {
       {/* ── Summary stat row ─────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Filed',    value: reports.length,  bg: 'bg-slate-50  border-slate-200  text-slate-700',   dot: 'bg-slate-500'   },
-          { label: 'Under Review',   value: underReview,     bg: 'bg-orange-50 border-orange-200 text-orange-700',  dot: 'bg-orange-500'  },
-          { label: 'Acknowledged',   value: acknowledged,    bg: 'bg-blue-50   border-blue-200   text-blue-700',    dot: 'bg-blue-500'    },
-          { label: 'Resolved',       value: resolved,        bg: 'bg-emerald-50 border-emerald-200 text-emerald-700', dot: 'bg-emerald-500' },
+          { label: 'Total Filed', value: reports.length, bg: 'bg-slate-50  border-slate-200  text-slate-700', dot: 'bg-slate-500' },
+          { label: 'Under Review', value: underReview, bg: 'bg-orange-50 border-orange-200 text-orange-700', dot: 'bg-orange-500' },
+          { label: 'Acknowledged', value: acknowledged, bg: 'bg-blue-50   border-blue-200   text-blue-700', dot: 'bg-blue-500' },
+          { label: 'Resolved', value: resolved, bg: 'bg-emerald-50 border-emerald-200 text-emerald-700', dot: 'bg-emerald-500' },
         ].map(({ label, value, bg, dot }) => (
           <div key={label} className={`rounded-xl border p-4 flex items-center gap-3 ${bg}`}>
             <div className={`w-3 h-3 rounded-full shrink-0 ${dot}`} />

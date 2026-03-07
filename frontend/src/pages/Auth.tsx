@@ -15,7 +15,7 @@ export default function Auth() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     // Mocking an API call to Firebase/FastAPI
     setTimeout(() => {
       setIsLoading(false);
@@ -56,14 +56,14 @@ export default function Auth() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-2xl sm:px-10 border border-slate-100">
-          
+
           <div className="mb-6 text-center">
             <h3 className="text-xl font-bold text-slate-800">
               {isLogin ? 'Sign in to your account' : 'Create an account'}
             </h3>
             <p className="text-sm text-slate-500 mt-1">
-              {isLogin 
-                ? 'Enter your credentials to access the dashboard' 
+              {isLogin
+                ? 'Enter your credentials to access the dashboard'
                 : 'Register to monitor budget flows or report anomalies'}
             </p>
           </div>
@@ -78,11 +78,10 @@ export default function Auth() {
                 <button
                   type="button"
                   onClick={() => setRole('citizen')}
-                  className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-                    role === 'citizen'
+                  className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${role === 'citizen'
                       ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
                       : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   <Users className="w-4 h-4" />
                   Citizen
@@ -90,11 +89,10 @@ export default function Auth() {
                 <button
                   type="button"
                   onClick={() => setRole('admin')}
-                  className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-                    role === 'admin'
+                  className={`py-2.5 px-4 border rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors ${role === 'admin'
                       ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
                       : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   <ShieldAlert className="w-4 h-4" />
                   Gov Admin
@@ -102,26 +100,26 @@ export default function Auth() {
               </div>
             </div>
 
+            {/* Full Name — always shown so we always have the user's name */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-slate-400" />
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent sm:text-sm bg-slate-50 focus:bg-white transition-colors"
+                  placeholder="e.g. Rajesh Kumar"
+                />
+              </div>
+            </div>
+
             {!isLogin && (
               <>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-5 w-5 text-slate-400" />
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent sm:text-sm bg-slate-50 focus:bg-white transition-colors"
-                      placeholder="e.g. Rajesh Kumar"
-                    />
-                  </div>
-                </div>
-
                 {/* Only show Department if the user is a Government Admin */}
                 {role === 'admin' && (
                   <div className="animate-in fade-in slide-in-from-top-2 duration-300">
@@ -245,7 +243,7 @@ export default function Auth() {
             </div>
           </div>
         </div>
-        
+
         <p className="text-center text-xs text-slate-400 mt-8">
           Secure Government Portal • Citizen & Authorized Personnel Access
         </p>
