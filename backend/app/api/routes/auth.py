@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
+
 @router.get("/login")
 def login():
-    return {"message": "Auth working"}
+    return {"message": "Auth endpoint active"}

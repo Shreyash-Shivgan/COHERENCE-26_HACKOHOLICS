@@ -1,11 +1,14 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from typing import List
+
+from app.core.database import get_db
+from app.models.anomaly import Anomaly
+from app.schemas.anomaly_schema import AnomalyResponse
 
 router = APIRouter()
 
-@router.get("/budget-spike")
-def detect_budget_spike():
-    return {"message": "Budget spike detection working"}
 
-@router.get("/fraud-risk")
-def detect_fraud_risk():
-    return {"message": "Fraud risk detection working"}
+@router.get("/", response_model=List[AnomalyResponse])
+def get_anomalies(db: Session = Depends(get_db)):
+    return db.query(Anomaly).all()
